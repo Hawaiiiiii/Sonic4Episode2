@@ -663,3 +663,83 @@ bytes at `+0x70` of a node, `NZMO` motions, `NZMA` morphs, `.EV` object id names
 quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 9 — Materials decoded, mesh-to-texture chain closed
+
+**2026-07-27 17:18 CEST (UTC+02:00)**
+
+### Done
+
+Materials fell on the fourth attempt. The binding is an **optional pointer at
+material `+0x18`** to a texture map block:
+
+| Offset | Field |
+|--------|-------|
+| `0x00` | type — `0x60000002` on the large majority |
+| `0x04` | **index into the model's `NZTL` texture list** |
+
+**9,431 of 9,431** materials carrying that block name an index inside their own
+model's texture list, **none out of range**. A further 336 have no block and are
+untextured.
+
+The full chain, every link verified:
+
+```
+mesh set --i_material--> material --+0x18--> texture map --index--> NZTL --> .DDS
+```
+
+`tools/nn.py export` now writes a matching `.mtl` with `map_Kd` and per-mesh
+`usemtl`, so any viewer picks the textures up on its own.
+
+### Two satisfying closures
+
+**The proof model is the one that broke the earlier approach.**
+`Z1_G_HASIRA_B.ZNO` defeated the subobject-texture-list attempt in beat 5 because
+it has 3 materials against 2 textures, which showed the selector *had* to live in
+the material. It does, and the model now resolves correctly: material 0 has no
+block, material 1 → `Z1_1_block_06_dif.dds`, material 2 → `Z1_1_block_21_dif.dds`.
+The failure pointed straight at the answer.
+
+**A loose end from a failed approach was a direct clue.** Beat 7 noticed that
+`0x30000000` material pointers are consistently exactly 4 bytes larger than
+`0x10000000` ones, and could not explain why. That flag is precisely what carries
+this optional `+0x18` texture-map pointer. The size correlation was real and
+meaningful; it just could not be interpreted without knowing what the extra field
+was.
+
+### What actually cracked it
+
+Not more data analysis — that failed three times. **`NOF0` as a pointer map**,
+which came from reading the loader in `Sonic.exe`. Knowing *which words are
+pointers* turned a variable-size struct with no stride into something readable.
+
+The general lesson, now proven twice: when a structure resists measurement, the
+binary knows. Go there sooner.
+
+### Progress
+
+**≈25% overall, 0% runnable.** Phase 1 ~85%, phase 2 ~80%.
+
+Phase 2's gate is now all but met — stages assemble, geometry extracts with UVs
+and normals, and textures resolve per mesh. Only motion playback is outstanding.
+
+### Next
+
+1. **Textured stage rendering.** `stageview.py` still ignores materials; wiring
+   the now-known binding in gives a textured Zone 1 Act 1.
+2. **`NZMO` motions.** The last untouched major format, and 846 models are
+   skinned. Same technique available if the data resists: find the loader.
+3. **Phase 3 groundwork** — nothing has been written toward an actual engine, and
+   that is where the runnable figure starts moving off zero.
+
+### Open
+
+The render-state block's packed `u16` pairs, vertex colours, bits `0x40`/`0x100`
+on the wide strides, the unknown word at `+0x04` of the vertex descriptor, the 32
+unknown bytes at `+0x70` of a node, `NZMO` motions, `NZMA` morphs, `.EV` object id
+names, `.AME` effects, the exact engine placement transform, and MojoShader output
+quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
