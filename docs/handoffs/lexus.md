@@ -1369,3 +1369,83 @@ bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects, the exact engine
 placement transform, MojoShader output quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 19 — Playable slice, and CRI audio closes phase 2
+
+**2026-07-27 21:39 CEST (UTC+02:00)**
+
+Worked autonomously while Yondaime was out. Two milestones.
+
+### A playable slice
+
+**You can run and jump on Zone 1 Act 1's real geometry.** `CollisionMap` from the
+stage's `_ATTR_B` layer, `Player` with gravity, ground and wall collision and
+edge-triggered jumping, camera follow, keyboard input. **47 tests passing.** The
+player spawns at (612, −880), lands on real terrain, collision grid 510×70.
+
+**Collision has to come from `_ATTR_`, not the visual layer.** Every cell with a
+tile also has an attribute, plus **1,285 attribute-only cells** — invisible walls
+and ceilings. Building collision from what you can see silently drops all of them.
+
+Two things marked in the code as approximations rather than results:
+
+- **The physics constants are placeholders.** Acceleration, friction, gravity and
+  jump velocity were chosen to feel plausible at 20 units/cell. They are *not*
+  Episode II's numbers, which live in the binary's player code and have not been
+  reverse engineered. Sonic feeling like Sonic depends entirely on replacing them.
+- **Collision is blocky.** A non-zero attribute is fully solid: right for flat
+  ground and walls, wrong on every slope. The shape data is in the `.DF` files
+  (64 bytes per cell, one height byte per pixel), undecoded.
+  `CollisionMap.GroundHeightAt` is deliberately the only place that changes.
+
+Horizontal and vertical motion resolve separately, which is what stops the player
+snagging on a wall while falling past it.
+
+### CRI audio — phase 2 closed
+
+All **8 containers parse, 0 failed, 949 cues**. Both `.CSB` and `.CPK` are built
+from the @UTF table: big-endian, every offset relative to `0x08`.
+
+**The trap is the storage class**, which is `0x10`/`0x30`/`0x50` rather than a
+dense 1/2/3. Guessing the dense form misaligns the name offset and produces a
+table that parses *successfully* with every column name empty — nothing throws.
+That empty-names symptom is the only signal, and it is what my first attempt
+produced.
+
+A `.CSB` is a `TBLCSB` of six sub-tables: INFO, CUE, SYNTH (89 mixing columns),
+SOUND_ELEMENT, ISAAC, VOICE_LIMIT_GROUP. Music is 48 kHz stereo, streaming, cues
+named plainly (`ep2_sng_title`, `ep2_sng_z1a1`).
+
+### Full regression, everything green
+
+1,614 archives · 651 texture banks · 5,727 NN containers · 3,546 models ·
+1,481 motions · 2,853 textures · 1,843 shaders · 8 CRI containers · 47 tests —
+**zero failures anywhere**.
+
+### Progress
+
+**≈44% overall.** Phase 1 ~85%, phase 2 ~95%, phase 3 ~75%, phase 4 ~3%.
+
+Playable is off zero, but only just: this is the first rung of phase 4, which
+holds 35% of the project on its own.
+
+### Next
+
+1. **Recover the real physics constants** from the binary. Everything about how
+   the game *feels* is gated on this, and placeholders will flatter the result
+   until they are replaced.
+2. **Decode `.DF`** for real ground shapes — slopes, loops, curves.
+3. **Name the `.EV` object ids** via rizin, then spawn rings and springs from the
+   actual placement data.
+4. CPK table of contents, then ADX/HCA decoding.
+
+### Open
+
+Physics constants, `.DF` collision shapes, `.EV` object id names, CPK TOC,
+ADX/HCA codecs, motion key payloads, the render-state block, vertex colours,
+wide-stride vertex bits, `NZMA` morphs, `.AME` effects, the exact engine
+placement transform, MojoShader output quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
