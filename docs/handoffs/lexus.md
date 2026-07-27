@@ -2268,3 +2268,75 @@ Whole-solution build · **106 tests** · four zones mounted end to end — green
 3. Ring loss on damage and the 50-ring Super threshold.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 31 — The spin dash, recovered rather than guessed
+
+**2026-07-28 06:18 CEST (UTC+02:00)**
+
+Beat 28 left the spin dash deliberately unimplemented because Episode I's launch
+formula uses `11.75` and that constant appears nowhere in Episode II. Waiting was
+right: **Episode II's formula is different, and the difference matters.**
+
+### The route in
+
+The parameter-copy routine gave the player work struct's layout for free. It
+compares `[esi+0x3578]` against table field 0 and `[esi+0x357c]` against field 1,
+so the live copy of every field sits at **`+0x3578 + field*4`**. Searching `.text`
+for those displacements then finds the code that uses each parameter, and the
+three spin-dash fields cluster in one function at `0x00512D70`.
+
+That function also settles something I had only inferred. It branches on
+`byte [esi+0x34f0]` — the character id — and picks the strings `MS_Dash1` and
+`MS_Dash2` when it is 2. **Character 2 is Metal Sonic**, from the binary rather
+than from beat 29's "it has no Super mode".
+
+### The formula
+
+```asm
+fld   dword [esi + 0x3518]   ; charge
+fmul  qword [0x743ea0]       ; 0.5
+fadd  qword [0x744030]       ; 8.0
+```
+
+**`launch = 8.0 + charge * 0.5`.** One charge gives 9.5 px/frame, a full one 13.0.
+
+Episode I's spans 12.125 to 13.0. **Episode II kept the ceiling and dropped the
+floor**, taking charging from nearly pointless to worth two thirds of the move's
+speed. Had I ported Episode I's formula in beat 28 it would have looked finished
+and been wrong in the way a player feels immediately.
+
+The charge also bleeds **proportionally** while winding up — `charge -= charge *
+0.03125` per frame — through the same decrease-toward-zero helper the ground
+friction uses at `0x005A8800`. I disassembled both helpers rather than assuming:
+`0x005A8770` adds toward a cap, `0x005A8800` moves toward zero, and both scale
+their step by a global at `0x008A3CD4` that is Episode I's `g_obj.speed`.
+
+### One ordering bug the tests caught
+
+The launch frame was also getting a frame of rolling friction, because
+`UpdateSpinDash` sets the speed and the movement block then treats the player as
+rolling. The engine sets the speed and leaves that state, so drag starts the frame
+after; `Player` now skips it once.
+
+My own test helper had the mirror-image bug: it pressed jump without ever
+releasing, so `_jumpHeld` stayed set and the second press added no charge at all.
+Both were only visible because a test asserted an exact launch speed.
+
+### Regression
+
+Whole-solution build · **115 tests** — green.
+
+### Progress
+
+**≈60%.** Phase 4 ~35%.
+
+### Next
+
+1. **An Android head** — the workload is now installed (`android 35.0.105`) and
+   the core library came off the filesystem in beat 30, so both halves are ready.
+2. Ring loss on damage and the 50-ring Super threshold.
+3. A character model instead of a blue rectangle.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
