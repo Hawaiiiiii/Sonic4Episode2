@@ -2201,3 +2201,70 @@ capability, which is worth more than a percentage point.
 3. A character model instead of a blue rectangle.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 30 — Off the filesystem, which is what phones need
+
+**2026-07-28 05:29 CEST (UTC+02:00)**
+
+### The actual blocker for mobile was not tooling
+
+Phase 5 has sat at 3% for the whole project while the director's first stated goal
+was phones. What was in the way turned out not to be the Android workload — it was
+that **the core library assumed a filesystem**.
+
+Only four places: `AmbArchive.Load`, and three in `GameEngine` — `Path.Combine` on
+the act, `Directory.EnumerateFiles` for the attribute archive, `File.Exists` for
+the tileset. Android serves data from inside the APK through an asset manager, iOS
+from a bundle, a browser build would fetch it. None of those is a filesystem, and
+all of them were blocked by those four calls.
+
+`IContentSource` now fronts all data access: `Exists`, `Read`, and a `List` that
+takes a suffix rather than a glob, because a glob is one more thing every platform
+would have to reimplement identically. `FileSystemContent` is the desktop
+implementation. `GameEngine(string)` still exists and forwards to it, so nothing
+downstream changed.
+
+Paths are `/`-separated throughout now. `DirectoryOf` deliberately avoids
+`Path.GetDirectoryName`: on Windows that also splits on a backslash, which would
+quietly accept paths no content source can serve and pass on desktop only.
+
+### Verified against real data, not just tests
+
+Four zones mounted through the new path:
+
+| Act | Tiles | Placements | Rings |
+|-----|------:|-----------:|------:|
+| Zone 1 Act 1 | 17,526 | **533/533** | 325 |
+| Zone 2 Act 1 | 27,882 | **823/823** | 241 |
+| Zone 3 Act 1 | 11,791 | **807/807** | 282 |
+| Zone 4 Act 1 | 528 | **276/276** | 356 |
+
+Every object id in all four resolves against the catalogue, every act reports
+height fields with angles, and **Zone 3 collected 3 rings on its own** — the first
+ring pickup off real data rather than a fixture.
+
+Two incidental confirmations fell out. The player's horizontal speed after 120
+frames of held input is 1.328 world units per frame, which is exactly
+`0.0354 * 0.3125 * 120` — the recovered acceleration, the pixel-to-world scale and
+the frame loop all agreeing at once. And Zone 4 reached 1.971 over the same 120
+frames, because it spawns on a slope and the slope term is doing its job.
+
+### Regression
+
+Whole-solution build · **106 tests** · four zones mounted end to end — green.
+
+### Progress
+
+**≈58%.** Phase 5 up from 3% to 6%; phase 3 to 91%.
+
+### Next
+
+1. An Android head. The library is ready for one; the workload is not installed —
+   `dotnet workload list` is empty — and pulling in the Android SDK, NDK and a JDK
+   is a large install the director may want to authorise first.
+2. Follow the character id at `[esi + 0x34f0]` for the spin dash constants.
+3. Ring loss on damage and the 50-ring Super threshold.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
