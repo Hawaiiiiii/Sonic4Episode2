@@ -1233,3 +1233,73 @@ bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects, the exact engine
 placement transform, MojoShader output quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 17 — Object system; phase 3's skeleton is complete
+
+**2026-07-27 20:21 CEST (UTC+02:00)**
+
+### Done
+
+`GameObject` and `ObjectManager`, with the engine's **fixed per-frame procedure
+order**: view check, parent resolve, asset gate, enter, update, move, collide,
+register draw, last. **30 tests, all passing.**
+
+That order is the contract, not an implementation detail. Collision runs after
+movement so it can correct the result; draw registration runs after collision so
+it sees the final position.
+
+### The part worth reading twice
+
+**Temp-offset handling.** Displacement from riding a platform goes into
+`TempOffset`, never straight to the position. Each frame the engine subtracts
+*last* frame's offset before running logic and adds *this* frame's after. A
+persistent push therefore does not accumulate, and a released one leaves no
+residue.
+
+Writing to the position directly looks completely correct until something stands
+on a moving platform, at which point it drifts.
+
+### Three test failures, all three my fault
+
+The implementation came from the oracle; the assertions came from my assumptions.
+The assumptions lost.
+
+Two were hit-stop. **The timer is decremented before the gate is tested**, so the
+frame that takes it to zero is the frame behaviour *resumes* — not the one after.
+I had assumed the extra frame. Getting that backwards costs one frame of input
+response on every hit: the kind of defect that feels wrong to play and reads
+perfectly fine in review.
+
+The third was ordering. Objects step in creation order, so "A destroys B
+mid-frame" only skips B's update when A was added first. Both orderings are now
+pinned by tests rather than left implicit.
+
+**Fourth time on this project that a check was wrong rather than the thing it
+was checking** — after the cutscene locators, `NULL.DDS`, and negative motion
+frames. The pattern is consistent enough to be a rule now: when something small
+disagrees with something large and well-established, suspect the small thing.
+
+### Progress
+
+**≈37% overall.** Phase 1 ~85%, phase 2 ~90%, phase 3 ~50%.
+
+**Playable game still 0%.** The skeleton exists; nothing is hung on it yet.
+
+### Next
+
+1. **Boot the engine on real data** — scheduler running, scene machine in a
+   gameplay state, stage mounted, drawn through the existing viewer path. That
+   is the first time these pieces work together rather than in isolation.
+2. **A player object**, at which point "playable" starts to mean something.
+3. Audio (CRI ADX2) still closes phase 2.
+
+### Open
+
+Motion key payloads, CRI audio, the render-state block, vertex colours,
+wide-stride bits, the unknown vertex-descriptor word, the node's trailing 32
+bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects, the exact engine
+placement transform, MojoShader output quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
