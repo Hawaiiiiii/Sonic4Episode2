@@ -1874,3 +1874,66 @@ new tests.
 3. Spin dash and rolling — the constants are already in the table, unused.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 25 — Slopes connected
+
+**2026-07-28 02:24 CEST (UTC+02:00)**
+
+Beat 23 decoded the stage's surface angles and beat 24 recovered the slope
+factors. Neither did anything until now; this beat joins them.
+
+Episode I's form is `ground speed += slope_factor * sin(ground angle)`, capped at
+`SlopeSpeedMax` — **a separate and higher limit than running top speed**, 13
+against 9.
+
+### Two bugs worth recording
+
+**The angle was not normalised.** `AngleDegrees` returned `-315` where it meant
+`+45`, because it negated the stored byte without wrapping. The trigonometry was
+unaffected, so the physics looked right while the reported angle was nonsense and
+one of my tests asserted against it. Now wrapped to `[-180, 180)`.
+
+**A plain clamp silently undid the slope term.** I was clamping horizontal speed
+to running top speed every frame, so the slope contribution was erased as fast as
+it accumulated and speed could never exceed 9. Episode I does not clamp — its
+`ObjSpdUpSet` adds toward a limit but **never pulls an already-faster value back
+down to it**, and that asymmetry is the entire mechanism by which a slope carries
+you past top speed. `Player.SpeedUp` now reproduces it.
+
+The second one is the interesting one: my version was a reasonable-looking
+simplification that quietly removed a feature. It would have passed review.
+
+### A consequence of the real numbers
+
+**Standing still on a 45 degree slope does not make you slide.** Deceleration is
+0.125 per frame; the slope contributes `0.0625 * sin(45) = 0.044`. Friction wins.
+I had written a test asserting the opposite, on the assumption that Sonic always
+slides, and the recovered constants said no. The test now asserts what the tuning
+actually does.
+
+### Also fixed
+
+My slope tests ran on a 2x2 cell map. At top speed the player crosses a cell
+every seven frames, ran off the end, went airborne, and the slope stopped
+applying — which is what the failure was actually telling me. The fixture is now
+a 512-cell strip.
+
+### Regression
+
+1,614 archives · 5,727 NN containers · 3,546 models · 2,853 textures · 651
+texture banks · 1,843 shaders · 8 CRI containers · 39 collision files · 23,474
+angle cells · 714 object ids · 7 physics rows · **75 tests** — green.
+
+### Progress
+
+**≈55%.** Phase 4 ~22%.
+
+### Next
+
+1. Identify ids 715/724/716 by behaviour — the most-placed objects in the game.
+2. Spin dash and rolling; the constants are already in the table.
+3. Ground-relative motion, so the player runs along a slope rather than across it.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
