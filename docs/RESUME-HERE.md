@@ -110,6 +110,14 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   `Z1_G_hasira_B.zno` where the AMB says `Z1_G_HASIRA_B.ZNO`.
 - The 50 `.XNM` files contain `NZMO`, i.e. Direct3D motions with a stale Xbox
   extension. Not console leftovers, no separate decoder needed.
+- **`NZOB` object header decoded** — 88 bytes at `OfsData + OfsMainData`, giving
+  bounding volume plus counts and offsets for materials, vertex lists, primitive
+  lists, nodes, matrix palettes, subobjects and textures. **All 3,577 models
+  parse sane, 0 failures**; 846 are skinned, 31 are geometry-less cutscene
+  locators (`CAMERA_POS`, `SONIC_POS`). Self-validating: the floor tile reports
+  bbox (10,10,0) with radius 14.14 = sqrt(200).
+- **All internal offsets are relative to `OfsData`** (0x20), not to the chunk or
+  file. Getting that base wrong yields a plausible-looking parse of nonsense.
 
 ## Repository
 
@@ -121,22 +129,22 @@ patterns case-insensitively, so `*.MD` silently swallows every `.md` file in
 
 ## Next step
 
-**Decode the `NZOB` payload.** The NN *container* is done; what remains is the
-object chunk itself — node tree, materials, vertex and index buffers. This is the
-last thing between here and a stage viewer.
+**Follow the object header's pointers.** The `NZOB` header is decoded; next are
+the lists it points at — vertex lists and primitive lists first, since those are
+what put triangles on screen, then materials and the node tree.
 
-Start with `Z1_G_FL_A.ZNO` (1,072 bytes, `NZOB` payload only 808 bytes — the
-smallest useful model in Zone 1, and the one placed 12,552 times). Getting a
-single floor quad on screen beats a complete parser.
+Start with `Z1_G_FL_A.ZNO`: 1 material, 1 vertex list, 1 primitive list, 1 node.
+It is the simplest possible case and the most-placed model in Zone 1. One quad on
+screen beats a complete parser.
 
-Two things to respect:
+Expect divergence from Episode I here. Its material descriptor is
+`NNS_MATERIAL_GLES11_DESC` — OpenGL ES 1.1 fixed function — while Episode II is
+shader-driven D3D9. The object header was platform-neutral; the vertex and
+material descriptors probably are not. Read `NNS_VTXLISTPTR` and `NNS_PRIMLISTPTR`
+in the oracle for the traversal shape, then verify every field against Episode
+II's bytes rather than assuming.
 
-- **`NOF0` is a relocation table.** NN stores internal pointers as offsets fixed
-  up at load time against the data chunk base. A reader must apply the same
-  fixups rather than trusting raw values.
-- **Episode I's `NNS_OBJECT.Read`** is the oracle — reached from `amObjectSetup`
-  (`AppMain/Am/AmObject.cs:5`), which walks this identical structure and switches
-  on chunk id `0x424F494E` (`NIOB`, the same chunk we see as `NZOB`).
+`NOF0` still needs decoding before any pointer chain is fully trustworthy.
 
 After that, in rough order:
 
