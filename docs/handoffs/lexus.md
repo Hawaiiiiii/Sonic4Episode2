@@ -1031,3 +1031,70 @@ trailing 32 bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects, the
 exact engine placement transform, MojoShader output quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 14 — The first thing that runs
+
+**2026-07-27 19:53 CEST (UTC+02:00)**
+
+### Done
+
+**A desktop head that opens a window.** `Sonic4Episode2.Desktop` on MonoGame
+3.8.5 DesktopGL: point it at the game root and an act archive and it renders that
+stage, assembled live — AMB mounted, grid read, tile ids resolved to models,
+geometry extracted, instanced onto the grid.
+
+Zone 1 Act 1: **17,526 tiles, 3,733,522 vertices, 1,593,407 triangles** —
+*exactly* what the Python `stageview.py` reported in beat 6. That is now a third
+independent path to the same numbers.
+
+Verified it genuinely runs rather than merely builds: the process is present with
+its window title set. The first run looked like an instant exit, which turned out
+to be `head` closing the pipe rather than the app failing — worth checking before
+believing an exit code.
+
+**DDS ported** as well, so the asset layer is complete on both sides and agrees
+on all 2,853 textures and every format count.
+
+### The asset layer now exists twice, and agrees
+
+Archives, stage grids, NN containers, geometry, nodes, materials, textures,
+motions, DDS — all of it in Python and in C#, producing identical numbers across
+the whole build. That redundancy has already earned its keep once, when a
+seven-model disagreement exposed an ambiguous definition rather than a bug.
+
+### Two implementation notes
+
+- `DrawUserIndexedPrimitives` has a per-call primitive limit well below an act's
+  triangle count, so the draw is chunked at 60,000 triangles.
+- Vertices are tinted by depth. Without textures or lighting the overlapping
+  parallax geometry is genuinely unreadable — the same lesson as the offline
+  rasteriser, where lambert shading failed because everything faces the camera.
+
+### Progress
+
+**≈32% overall.** Phase 1 ~85%, phase 2 ~90%, phase 3 ~25%.
+
+Being careful with the headline, because this is the moment it would be easy to
+overclaim: **this runs, but it is a viewer.** No player, no physics, no game
+logic. The *playable game* remains at 0%. What has changed is that the project
+now has something that executes and draws the real data, which it did not before.
+
+### Next
+
+1. **Textures in the viewer.** The binding is decoded and the decoder is ported;
+   it just needs uploading to `Texture2D` and a shader that samples it.
+2. **Camera and scrolling** that behave like the game's, rather than free pan.
+3. **Then the actual engine**: task scheduler, state machine, object system — the
+   parts Episode I can genuinely guide — and after that a player.
+4. Audio (CRI ADX2) still closes phase 2.
+
+### Open
+
+Motion key payloads, CRI audio, the render-state block, vertex colours,
+wide-stride bits, the unknown vertex-descriptor word, the node's trailing 32
+bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects, the exact engine
+placement transform, MojoShader output quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
