@@ -351,3 +351,74 @@ the 32 unknown bytes at `+0x70` of a node, `NOF0`, `NZMO` motions, `NZMA` morphs
 `.EV` object id names, `.AME` effects, and the unproven MojoShader assumption.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 5 — Texture list decoded, mesh-to-texture partially bound
+
+**2026-07-27 15:50 CEST (UTC+02:00)**
+
+### Done
+
+**`NZTL` texture list decoded.** 20-byte entries — notably the *first* struct in
+this format that matches Episode I's size rather than diverging from it, after
+the mesh set (40 vs 48) and the node (144 vs 112).
+
+Across the build, 3,577 models carry **9,815 texture references and 9,665 (98.5%)
+resolve** to a `.DDS` that actually exists somewhere in the game. Names keep their
+authored casing (`ene_hopper_dif.dds`, `Z1_1_block_06_dif.dds`) and follow the
+bank convention: `_dif` diffuse, `_spe` specular, `_env` environment.
+
+The 150 that do not resolve are effect and cutscene textures — `EMERALD_ADD.DDS`,
+`SONIC_FOOT.DDS`, the `EG_TOON_*` set — which live in archives loaded separately
+from the model, or were referenced and never shipped in this beta. Nothing about
+them reads as a parse fault.
+
+### Mesh-to-texture binding — honestly partial
+
+A subobject carries an `s32` list of indices into the model's `NZTL`. The Hopper's
+two subobjects both list `[0, 1, 2]`, all three of its textures.
+
+That is not sufficient. `Z1_G_HASIRA_B.ZNO` has **3 materials against 2 textures**
+and its mesh sets reference materials 1, 2 and 0, so the final selector has to sit
+inside the material — still undecoded. Recording this as partial rather than
+claiming the chain is closed.
+
+It does not block the viewer: a model with a single texture is unambiguous, and
+that covers most stage tiles.
+
+### Materials, again
+
+Attacked and parked a second time. They remain the only variable-size structure
+here — `fType` differs per material and descriptor gaps vary within one model
+(196 and 200 bytes). There is no stride to measure, so the layout has to be
+worked out flag by flag, most likely against the binary rather than the data.
+That is a session of its own.
+
+### Progress
+
+**≈20% overall, 0% runnable.** Phase 1 ~80%, phase 2 ~55%.
+
+### Next
+
+Build the viewer with what exists. Every input is now present: grids give tile
+ids, tile ids resolve to models, models yield positioned geometry with UVs and
+normals, and models name their textures. Take the single-texture path, accept that
+multi-material models will pick the wrong texture for now, and get Zone 1 Act 1 on
+screen.
+
+Confirm the grid-to-world scale while doing it — the floor tile is a 20×20 unit
+quad against stage cells inferred at 64px from the `.EV` block pitch. Those two
+numbers need reconciling before anything is instanced, and the floor quad's
+authored position (x −140..−120 rather than 0..20) suggests the node transform is
+part of the answer.
+
+### Open
+
+Materials and the exact mesh-to-texture selector, vertex colours, bits
+`0x40`/`0x100` on the wide strides, the unknown word at `+0x04` of the vertex
+descriptor, the 32 unknown bytes at `+0x70` of a node, `NOF0`, `NZMO` motions,
+`NZMA` morphs, `.EV` object id names, `.AME` effects, and the still-unproven
+MojoShader assumption underpinning the mobile target.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
