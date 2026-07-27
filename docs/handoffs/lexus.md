@@ -2737,13 +2737,23 @@ of a single model that agreed with me.
 alternative — writing "matrix palette decoded" on 53% agreement — is how the
 texture-coordinate bug in beat 37 survived for thirty beats.
 
-### What the next attempt should do
+### The binary route, started
 
-Start from **the engine's own model loader** rather than from the data. That
-technique settled the collision addressing in beat 21, the object table in beat
-22 and the spin dash in beat 31, and it has not failed yet. `Sonic.exe` has to
-build a matrix palette to draw Sonic at all; finding where it reads one gives the
-layout directly instead of by inference.
+I did start it rather than just recommending it, and got far enough to say where
+the next attempt should *not* look.
+
+The NN chunk tags appear in exactly three places in `Sonic.exe`. `NZIF` at
+`0x0062126B` is a **name lookup** — it walks a table comparing strings, nothing to
+do with geometry. `NZOB`, `NEND` and `NZTL` sit together at `0x006C6C55` inside a
+tight `cmp ecx, tag / je` chain, which is the **container walker**: it finds each
+chunk and fixes up pointers in place, which is the relocation behaviour this
+format is built around.
+
+Neither touches a matrix palette, and that makes sense — **the palette is used at
+draw time, not load time**. The next attempt should go after the geometry
+submission path: find where the engine hands vertex buffers to D3D and work back
+to what it sets up per mesh set. `SetVertexShaderConstantF` with a large register
+count is the usual shape of a palette upload and is a good thing to search for.
 
 ### Regression
 
