@@ -93,22 +93,40 @@ surveyed and scoped. No engine or game code has been written yet.
 **rizin is installed** and is the RE tool for this project — no Ghidra or IDA on
 this machine. It handled the binary survey (8,007 functions via `afl`).
 
+- **Tile ids are 3D model indices** — the single most consequential finding so
+  far. A geometry-layer tile id indexes `ZONE<zone>[<tileset>]_M.AMB`, which holds
+  `.ZNO` models. Verified on all 13 act maps, usually an exact fit (Zone 1: 298
+  models, top id 297). So the stages are grids of 3D model instances, **not**
+  sprite tilemaps, and a stage viewer requires an NN geometry parser rather than
+  a tile blitter. `_ATTR_*` layers use a separate id space (collision, ids > 2700).
+
+## Repository
+
+Public at **https://github.com/Hawaiiiiii/Sonic4Episode2**, branch `main`.
+Tools and docs only — the `.gitignore` is directory-scoped on purpose. Do **not**
+add bare extension globs like `*.MD` or `*.MP` to it: Windows matches ignore
+patterns case-insensitively, so `*.MD` silently swallows every `.md` file in
+`docs/`. That bug already cost one broken initial commit.
+
 ## Next step
 
-Two candidates, in order:
+**Parse `.ZNO` geometry.** This is now the critical path — it gates the stage
+viewer, and the viewer is the first artifact worth showing anyone. The format is
+SEGA NN chunked data, Direct3D 9 variant: first chunk `NZIF`, then `NZTL`. Start
+from `G_ZONE1/MAP/ZONE1_M.AMB` and the handful of ids that dominate Zone 1 Act 1
+(`Z1_G_FL_A`, `Z1_G_HASIRA_B`, `Z1_G_WL_A`) — getting one floor tile on screen is
+worth more than a complete parser.
 
-1. **Pin down the `.EV` record fields.** The 12-byte stride is proven but the
-   layout inside it is guesswork. The way to settle it is to correlate object ids
-   against the ~200 named gimmicks recovered from the binary, and to check
-   whether the `+0x00`/`+0x01` bytes really are block-local coordinates by
-   plotting placements over the rendered tile map. A ring id should land on
-   ring positions.
-2. **`.TXB` texture banks**, which gate anything visual, then `.ZNO` model
-   geometry in Phase 2.
+Episode I's `amObjectSetup` (`AppMain/Am/AmObject.cs`) reads the same chunked NN
+format for its own platform variant and is the oracle to read first.
 
-Also worth an early spike, because the mobile target depends on it: run one of
-the extracted `ps_3_0` shaders through MojoShader and confirm it produces usable
-GLSL ES.
+After that, in rough order:
+
+1. **`.EV` object ids to names** — needs disassembly with rizin, since the ~298
+   names are immediates inside each object's code rather than a table.
+2. **MojoShader spike** — take one extracted `ps_3_0` shader and confirm it
+   yields usable GLSL ES. The whole mobile target rests on this assumption.
+3. **`.AME` effects** and the remaining minor formats.
 
 The Episode Metal content (`G_EP1ZONE1-4`) remains the best calibration set for
 any decoder, since Episode I's decompilation independently establishes what those
