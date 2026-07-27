@@ -14,7 +14,7 @@ set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
 failures. The binary has been surveyed and scoped.
 
 **No engine or game code has been written yet — nothing here runs the game on any
-platform.** Overall progress against the full goal is roughly **28%**, and the
+platform.** Overall progress against the full goal is roughly **30%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -254,7 +254,18 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   922/921/669/651). Stage grids match on dimensions and occupancy too. Two
   independent implementations agreeing is far stronger evidence for the format
   spec than either passing alone.
-- Ported so far: `AmbArchive`, `StageGrid` (with the tile bitfield). The
+- Ported so far: `AmbArchive`, `StageGrid`, and the whole **NN reader** -
+  container, object header, vertex/primitive lists, mesh sets, nodes, materials,
+  textures, relocations and motions. C# matches Python **exactly**: 5,727
+  containers, 3,577 models, **2,820,398 vertices and 2,513,705 triangles**,
+  1,481 motions with 296,072 channels, 11,224/11,224 mesh texture bindings.
+- **The cross-check earned its keep.** C# reported 839 skinned models against
+  Python's 846. The seven-model gap was seven *camera rigs* (`CAMERA_POS`,
+  `WM_CAMERA_PERSPECTIVE`, `WM_CAMERA_ORTHO`) - locators with 2-3 nodes at depth
+  2 and no vertices. Python counted them as skinned; C# excluded locators first.
+  The C# reading is right, so `is_skinned` now requires geometry on both sides
+  and both report 839. Neither implementation was buggy - the *definition* was
+  ambiguous, and only running two of them surfaced it. The
   blank-string-table index fallback is carried across **with its comment** -
   that is the bug that silently lost ~25% of stage data, and it is easy to
   reintroduce in a fresh port.
