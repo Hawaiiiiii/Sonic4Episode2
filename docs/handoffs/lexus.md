@@ -182,3 +182,93 @@ mobile target remains unproven and should get a spike before anything depends
 on it.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 3 — Geometry extracts from every model in the game
+
+**2026-07-27 15:25 CEST (UTC+02:00)**
+
+### Done
+
+**All 3,546 models with geometry extract, 0 failures.** 2,820,398 vertices and
+2,513,705 triangles. `tools/nn.py export` writes Wavefront OBJ, so the output is
+openable in any 3D viewer rather than being a claim in a log.
+
+Decoded this beat: the pointer arrays (`{u32 fType, u32 offset}` pairs), the
+vertex list descriptor, the primitive list descriptor, the subobject list and the
+mesh set.
+
+Vertex formats are a clean bitfield — `0x1` position, `0x2` normal, `0x8`/`0x10`
+colours, `0x10000` texcoord — and every observed combination accounts for its
+stride to the byte (`0x10003`→32, `0x1001b`→40, `0x10019`→28, `0x10001`→20). That
+correspondence is how the bits were identified rather than guessed. All 4,085
+primitive lists are mode `0x4810`, triangle strips, no exceptions in the build.
+
+### The two wrong turns, and what they teach
+
+**Positional pairing is wrong.** I first assumed vertex list *i* pairs with
+primitive list *i*. That gave 1,809 of 3,546 models and out-of-range indices on
+the rest. The binding is data-driven: `NNS_MESHSET` carries explicit `iVtxList`,
+`iPrimList`, `iMaterial` and `iNode`, reached via the subobject list.
+
+**Episode I's struct size is wrong.** Switching to mesh sets at Episode I's
+48-byte stride only reached 2,018 models, and the failures showed float bit
+patterns read as integers — the signature of misalignment. Episode II's mesh set
+is **40 bytes**: one reserved word where Episode I has three.
+
+The stride was *measured*, not guessed. In every subobject the gap between the
+mesh set array and the texture index list that follows it divides exactly by the
+mesh set count — 40 on models with 1, 2 and 24 mesh sets alike. With that, all
+3,546 models parsed.
+
+This is the sharpest illustration so far of how to use the oracle: **Episode I
+gives the right shape and cannot be trusted on size.** Traversal order, field
+order and semantics carried over perfectly; the byte count did not. Every struct
+size from here on gets measured against Episode II's own data.
+
+Both failures presented as plausible indices rather than crashes, which is the
+characteristic failure mode of this format and worth watching for.
+
+### Cross-check worth recording
+
+`ENE_HOPPER.ZNO` declares a bounding box centred on `(0.00, 4.36, 2.84)` with
+half-extents `(3.88, 9.04, 9.48)`. Its 3,211 extracted vertices span exactly that
+volume, to two decimals. Those numbers come from different regions of the file
+and were parsed by different code paths, so their agreement is independent
+evidence rather than a tautology.
+
+### Correction from Yondaime
+
+I had written that Beta 8 is locked behind a failing Steam check. Wrong — this
+copy has the Steam check disabled and plays fine. Corrected in `EXECPLAN.md`. The
+substantive point is unchanged and still worth keeping: `Sonic.exe` running is
+SEGA's binary doing its job, not a deliverable of ours. Our first runnable binary
+does not exist yet.
+
+### Progress
+
+**≈17% overall, 0% runnable.** Phase 1 ~80%, phase 2 ~40% now that geometry is
+in. Phases 3 and 4 hold 55% of the weight between them and have not started.
+
+### Next
+
+**Build the stage viewer.** Every input now exists: grids give tile ids, tile ids
+resolve to models, models yield geometry, texture banks name the DDS, and DDS is
+plain DXT. Instance each tile's model at its grid position and render Zone 1
+Act 1.
+
+Two things to settle while doing it — texture coordinates (the exporter writes
+positions only) and materials, to know which texture slot each mesh set uses.
+Expect the material struct to be a different size from Episode I's, per the
+precedent above. Also pin down the grid-to-world scale: the floor tile is a 20×20
+unit quad while stage cells were inferred at 64px.
+
+### Open
+
+Materials, the node tree (10,138 nodes, 846 skinned models), vertex attributes
+beyond position, the unknown word at `+0x04` of the vertex descriptor, `NOF0`,
+`.EV` object id names, `.AME` effects, and the still-unproven MojoShader
+assumption.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus

@@ -5,14 +5,16 @@ working session. If chat history is gone, start from this file.
 
 ## Where things stand
 
-Phase 1 (asset containers) is nearly finished. Six formats are decoded and
-verified against the whole build: the **AMB** container, the **stage tile grids**
-(`.MP`/`.MD`), the **object placement tables** (`.EV`/`.DC`/`.RG`), the **texture
-banks** (`.TXB`), the **NN container** (`.ZNO`/`.ZNM`/`.ZNV`) and the **NZOB
-object header**. The binary has been surveyed and scoped.
+Phase 1 (asset containers) is nearly finished and **model geometry now extracts
+completely**. Decoded and verified against the whole build: the **AMB** container,
+the **stage tile grids** (`.MP`/`.MD`), the **object placement tables**
+(`.EV`/`.DC`/`.RG`), the **texture banks** (`.TXB`), the **NN container**
+(`.ZNO`/`.ZNM`/`.ZNV`), the **NZOB object header**, and **vertex, index and mesh
+set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
+failures. The binary has been surveyed and scoped.
 
 **No engine or game code has been written yet — nothing here runs the game on any
-platform.** Overall progress against the full goal is roughly **12%**, and the
+platform.** Overall progress against the full goal is roughly **17%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
