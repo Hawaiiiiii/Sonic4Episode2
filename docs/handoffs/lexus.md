@@ -2640,3 +2640,65 @@ work was verification and a bound on what is possible.
 3. Damage, which needs its code read the way the spin dash was.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 37 — Skinning weights, and the bug they were hiding
+
+**2026-07-28 10:02 CEST (UTC+02:00)**
+
+Beat 36 said the matrix palette and the vertex blend weights were what stood
+between this project and a character on screen. Half of that is now done, and it
+turned up a live bug that had been quietly wrong for the whole project.
+
+### The weights
+
+Solving the stride arithmetic across all 36 distinct vertex formats gives four
+bits worth four bytes each — `0x01000`, `0x02000`, `0x04000` and `0x00400` — one
+float per weight.
+
+Confirmed directly, not just by arithmetic. Sonic's first vertex reads
+`0.012, 0.988, 0.000, 0.000`, **summing to exactly 1**. Across the build **572
+vertex lists carry weights**, 395 with three and 177 with four, and **96% of
+93,149 sampled vertices sum to 1.00**.
+
+### The bug
+
+**They sit between the position and the normal.** The layout table went straight
+from position to normal, so on Sonic the normal was being read at offset 12
+instead of 28, and the texture coordinates at 24 instead of 40.
+
+**Every skinned model in this project has been reading its texture coordinates out
+of its normals.** Normals are floats in a small range and so are UVs, so it
+produced plausible numbers rather than an error, and 3,546 models kept reporting
+"geometry extracted, 0 failed" the whole time.
+
+Fixed, and checked properly: texture coordinates land in a sane range on **7,290
+of 7,290** lists that carry them, across 2.75 million vertices.
+
+### How the layout got pinned
+
+By asking which three-float slot in Sonic's 48-byte stride has unit length.
+`+28` gives exactly **1.0000**; `+12`, where a reader assuming position-then-normal
+looks, gives **0.9743**. Close enough to pass a glance, which is the dangerous kind
+of wrong — and the same trap as beat 35's rotation field, one field further along
+the same struct.
+
+### Regression
+
+5,727 NN containers · 3,546 models · 1,614 archives · whole-solution build ·
+**140 tests** — green.
+
+### Progress
+
+**≈65%.** Phase 2 ~98%.
+
+### Next
+
+1. **The matrix palette.** The weights say how much each matrix moves a vertex;
+   the palette says which — 99 of them on Sonic's 109 nodes, undecoded. That is
+   the last piece before a character can be posed and animated.
+2. The Android head, once the SDK licence is accepted.
+3. Damage, which needs its code read the way the spin dash was.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
