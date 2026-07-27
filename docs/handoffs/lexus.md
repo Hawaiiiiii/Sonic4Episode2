@@ -2128,3 +2128,76 @@ Whole-solution build · **96 tests** — green.
 3. A character model instead of a blue rectangle.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 29 — The physics table is 3 x 11, not 7. Correcting beat 24.
+
+**2026-07-28 04:48 CEST (UTC+02:00)**
+
+### What was wrong
+
+Beat 24 reported the player parameter table as **seven rows, one per character**,
+named with Episode I's `char_id` enumeration. That was wrong about the shape.
+
+Going after the spin dash took me to the code that indexes it:
+
+```asm
+movzx ecx, byte [esi + 0x34f0]   ; character id
+imul  ecx, ecx, 0x4a4            ; 1188 bytes per character
+fld   dword [ecx + 0x710520]
+```
+
+**1188 is 11 rows of 108.** So the table is **3 characters of 11 modes**, and my
+"seven characters" were seven of the eleven *modes* of character 0. The fourth
+1188-byte block is unrelated data, which is what bounds it at three.
+
+### What was right
+
+**Every value.** Row 0 is still Sonic normal at 0.0354 acceleration, 9.0 top
+speed, 5.647 jump, 0.16602 gravity, and the player has been running on correct
+numbers since beat 24. The error was in the *labelling and extent*, not the data —
+which is exactly why it survived four beats of green tests.
+
+My `plausible()` scan stopped after seven rows because modes 7 and 8 fail a
+sanity check I wrote: their top speed is 0.225 and 0.375, a fortieth and a
+twenty-fourth of normal, and I had required at least 1.0. A filter I wrote to
+reject garbage rejected real data and I read the stop as the end of the table.
+
+**Fourth time the same lesson.** Beats 20, 23, 25 and now 29: a cheap check
+agreed with what I expected and I did not ask what it was actually matching.
+
+### What the corrected table says
+
+Characters 0 and 1 are identical bar one slope field and both have a Super mode.
+Character 2 has none — its Super row repeats its normal values, which is what you
+would expect of Metal Sonic. Modes 7 and 8 are heavily slowed with **gravity
+untouched**, so they are slowed movement rather than slow motion.
+
+`PlayerPhysics` now exposes `For(character, mode)` over 33 rows, with
+`CharacterCount` and `ModeCount` as the engine's own constants. Four new tests
+pin the shape, including one asserting the four counters are identical in all 33
+rows — they are what identified the table, so drift there would mean a bad stride.
+
+### Spin dash, still not implemented
+
+The trip that found this did not find the launch constant. Standing as beat 28
+left it.
+
+### Regression
+
+Whole-solution build · **100 tests** — green.
+
+### Progress
+
+**≈58%.** No change: this beat corrected understanding rather than adding
+capability, which is worth more than a percentage point.
+
+### Next
+
+1. Follow the character id at `[esi + 0x34f0]` into the player work struct — that
+   is the route to the spin dash code and the roll threshold.
+2. Ring loss on damage and the 50-ring Super threshold.
+3. A character model instead of a blue rectangle.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
