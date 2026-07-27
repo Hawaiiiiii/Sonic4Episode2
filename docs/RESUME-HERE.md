@@ -80,9 +80,13 @@ runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Environment
 
-- Python 3.14.5 and git are available.
-- **No .NET SDK is installed** (`dotnet --list-sdks` is empty). Any C# phase
-  requires installing one first. All current tooling is deliberately Python.
+- Python 3.14.5, git and rizin are available.
+- **.NET SDK 9.0.316 is installed** (`C:\Program Files\dotnet`), alongside the
+  .NET 8 and 9 runtimes that were already present. Smoke-tested: `dotnet new
+  console` restores, builds and runs. **Phase 3 is no longer blocked on tooling.**
+- Existing tooling stays Python because it has zero dependencies and the asset
+  work is nearly finished; the C# work starts with the engine, not by rewriting
+  the extractors.
 
 - **Texture banks decoded** (`docs/FORMAT-TXB.md`, `tools/txb.py`): `.TXB` is
   **big-endian** (unlike AMB) — `#TXB`, `u32` count at `0x10`, `u32` table offset
