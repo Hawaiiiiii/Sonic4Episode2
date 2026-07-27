@@ -5,19 +5,53 @@ working session. If chat history is gone, start from this file.
 
 ## Where things stand
 
-Phase 1 (asset containers) is nearly finished and **model geometry now extracts
-completely**. Decoded and verified against the whole build: the **AMB** container,
-the **stage tile grids** (`.MP`/`.MD`), the **object placement tables**
-(`.EV`/`.DC`/`.RG`), the **texture banks** (`.TXB`), the **NN container**
-(`.ZNO`/`.ZNM`/`.ZNV`), the **NZOB object header**, and **vertex, index and mesh
-set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
-failures. The binary has been surveyed and scoped.
+**Overall ≈65%.** Phase 1 ~95%, phase 2 ~98%, phase 3 ~94%, phase 4 ~37%,
+phase 5 ~12%. Weighted table in `plans/EXECPLAN.md`. The runnable game is still
+far from complete, but the slice that runs is real.
 
-**A playable slice now runs**: you can run and jump on Zone 1 Act 1's real
-geometry, with collision from the stage's own `_ATTR_` layer. **The physics
-constants are placeholders**, chosen to feel plausible at this scale rather than
-recovered from the binary, and there are no objects, enemies or goal yet. Overall progress against the full goal is roughly **48%**, and the
-runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
+**Assets.** Decoded and verified against the whole build: the **AMB** container,
+the **stage tile grids** (`.MP`/`.MD`), the **placement tables** (`.EV`/`.DC`/`.RG`),
+the **texture banks** (`.TXB`), the **NN container**, the **NZOB object header**,
+geometry, **node hierarchies** and **skinning weights**, **collision height fields
+and surface angles**, **DDS**, **D3D9 shader bytecode** and **CRI containers**.
+
+**Recovered from `Sonic.exe`, not guessed:**
+
+| What | Where | Notes |
+|------|-------|-------|
+| Collision addressing | `0x00560349` | records first, index last |
+| Object dispatch table | `0x007031C8` | 803 slots, 714 live, 382 handlers |
+| Player parameter table | `0x00710520` | 3 characters x 11 modes |
+| Spin dash launch | `0x00513005` | `8.0 + charge * 0.5` |
+| `.EV` record layout | `0x0053D541` | confirms id at +2, flags at +4 |
+
+**What plays.** Zone 1 Act 1 mounts from the original archives and you can run,
+jump, roll and spin dash on its real geometry, following per-column height fields
+and the stage's own surface angles. Rings load from `.RG`, draw as the game's own
+model and can be collected; fifty of them transforms the player onto the Super
+row. Every object id in Zones 1-4 Act 1 resolves against the catalogue. **Objects
+are not spawned yet** and there are no enemies, damage or goal.
+
+**Phones.** The core library and the renderer no longer touch a filesystem —
+everything goes through `IContentSource` — and touch input works via `VirtualPad`,
+verified driving Zone 1 on a 1080x2400 portrait screen. **There is no Android head
+yet**: the .NET workload is installed but the Android SDK is not, and installing
+it requires accepting Google's licence terms, which is the director's call. See
+`docs/MOBILE.md`.
+
+**Build and test with `dotnet build` on the whole solution, not just
+`dotnet test`** — the test project does not reference the Desktop head, so a break
+there goes unnoticed. 140 tests.
+
+## The next three things
+
+1. **The matrix palette**, which is all that stands between here and a character
+   on screen. Weights are decoded; which matrix each weight refers to is not.
+   Go at it from the draw path in the binary, not the loader — see beat 38.
+2. **The Android head**, once the SDK licence is accepted.
+3. **Damage**: ring loss, invincibility, knockback. Episode I's constants do not
+   appear in Episode II, so this needs the damage code read the way the spin dash
+   was.
 
 ## Paths
 
