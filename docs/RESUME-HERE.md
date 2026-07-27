@@ -100,6 +100,17 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   sprite tilemaps, and a stage viewer requires an NN geometry parser rather than
   a tile blitter. `_ATTR_*` layers use a separate id space (collision, ids > 2700).
 
+- **NN container decoded** (`docs/FORMAT-NN.md`, `tools/nn.py`): `.ZNO`/`.ZNM`/
+  `.ZNV` are SEGA BINCNK — flat `tag[4] + u32 size` chunks to `NEND`. All **5,727
+  containers parse, 0 failures**, and the census cross-checks exactly: 3,577
+  `NZOB` = the `.ZNO` count, 669 `NZMA` = the `.ZNV` count. The tag's second
+  letter is the platform code (`Z`=D3D9, `X`=Xbox, `G`=GameCube, `I`=GL ES),
+  which is what proves Episode I's `NIOB`/`NITL` are the same chunks.
+- `NFN0` preserves the **original authored filename with its real casing** —
+  `Z1_G_hasira_B.zno` where the AMB says `Z1_G_HASIRA_B.ZNO`.
+- The 50 `.XNM` files contain `NZMO`, i.e. Direct3D motions with a stale Xbox
+  extension. Not console leftovers, no separate decoder needed.
+
 ## Repository
 
 Public at **https://github.com/Hawaiiiiii/Sonic4Episode2**, branch `main`.
@@ -110,15 +121,22 @@ patterns case-insensitively, so `*.MD` silently swallows every `.md` file in
 
 ## Next step
 
-**Parse `.ZNO` geometry.** This is now the critical path — it gates the stage
-viewer, and the viewer is the first artifact worth showing anyone. The format is
-SEGA NN chunked data, Direct3D 9 variant: first chunk `NZIF`, then `NZTL`. Start
-from `G_ZONE1/MAP/ZONE1_M.AMB` and the handful of ids that dominate Zone 1 Act 1
-(`Z1_G_FL_A`, `Z1_G_HASIRA_B`, `Z1_G_WL_A`) — getting one floor tile on screen is
-worth more than a complete parser.
+**Decode the `NZOB` payload.** The NN *container* is done; what remains is the
+object chunk itself — node tree, materials, vertex and index buffers. This is the
+last thing between here and a stage viewer.
 
-Episode I's `amObjectSetup` (`AppMain/Am/AmObject.cs`) reads the same chunked NN
-format for its own platform variant and is the oracle to read first.
+Start with `Z1_G_FL_A.ZNO` (1,072 bytes, `NZOB` payload only 808 bytes — the
+smallest useful model in Zone 1, and the one placed 12,552 times). Getting a
+single floor quad on screen beats a complete parser.
+
+Two things to respect:
+
+- **`NOF0` is a relocation table.** NN stores internal pointers as offsets fixed
+  up at load time against the data chunk base. A reader must apply the same
+  fixups rather than trusting raw values.
+- **Episode I's `NNS_OBJECT.Read`** is the oracle — reached from `amObjectSetup`
+  (`AppMain/Am/AmObject.cs:5`), which walks this identical structure and switches
+  on chunk id `0x424F494E` (`NIOB`, the same chunk we see as `NZOB`).
 
 After that, in rough order:
 
