@@ -2069,3 +2069,62 @@ angle cells · 714 object ids · 7 physics rows · **whole-solution build** ·
 3. A character model for the player, instead of a blue rectangle.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 28 — Rolling, and a spin dash I refused to invent
+
+**2026-07-28 04:12 CEST (UTC+02:00)**
+
+### Rolling
+
+Wired, and running on Episode II's own numbers throughout. A roll gives up
+steering entirely and coasts on `RollFriction` **0.03125** against a running
+**0.125** — four times lighter, which is the whole point of it — and takes the
+stronger `SlopeFactorRolling` **0.15625** against a running **0.0625**, so a
+curled Sonic outruns a running one downhill.
+
+Episode I halves rolling friction while the stick is held into the direction of
+travel and doubles it otherwise. I ported that *shape* — steering into a roll
+extends it, steering against one kills it — but both are shifts of Episode II's
+own `spd_dec_spin`, not magnitudes borrowed from Episode I. Down or S rolls in
+the viewer, and the title bar says so.
+
+### One number I could not confirm, and said so
+
+The speed at which a roll starts and ends is **not recovered**. Episode I calls
+it `GMD_PL_STOP_SPD` = 0.5 px/frame and that is what `Player.RollThreshold` uses,
+but 0.5 occurs 168 times in Episode II's constant pool, so unlike the parameter
+table there was nothing to pin it against. It is flagged in the code and in
+`docs/PHYSICS.md` rather than quietly presented as recovered.
+
+### The spin dash is not implemented, deliberately
+
+Its charge values *are* recovered and are Episode II's — base 3.0, 2.0 per
+revolution, cap 10.0, all in the table. What is missing is the conversion from
+charge to launch speed.
+
+Episode I computes `11.75 + charge / 8`, from `GMD_PL_SPINDASH_SPD` 48128 and
+`GMD_PL_SPINDASH_MUL` 512. **`11.75` does not occur anywhere in Episode II's
+constant pool.** So that formula did not survive, and porting it would put an
+invented number into the one mechanic a Sonic player can feel most precisely.
+
+I could have shipped it and it would have looked finished. Left undone with the
+reason recorded, which is the more useful state to hand over.
+
+### Regression
+
+Whole-solution build · **96 tests** — green.
+
+### Progress
+
+**≈58%.** Phase 4 ~31%.
+
+### Next
+
+1. Read Episode II's spin dash code from the parameter-table copy at `0x0046aeb2`,
+   which is the route to both the launch constant and the roll threshold.
+2. Ring loss on damage and the 50-ring Super threshold.
+3. A character model instead of a blue rectangle.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
