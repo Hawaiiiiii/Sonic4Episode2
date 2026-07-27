@@ -1787,3 +1787,90 @@ known target is a far better bet than the structural hunt I tried here.
 3. Identify ids 715/724/716 by behaviour.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 24 — The player parameter table, and Sonic moves like Sonic
+
+**2026-07-28 01:52 CEST (UTC+02:00)**
+
+### Found it
+
+Episode II's player tuning is at **`Sonic.exe:0x00710520`** — seven rows of 108
+bytes, one per playable mode, in the same field order Episode I uses for
+`g_gm_player_parameter[7]`.
+
+The route in was Episode I as an oracle, used properly for once. Episode I stores
+its tuning as FX32 fixed point; its Sonic jump impulse is `23130`, which over 4096
+is **5.64697265625**, and its gravity `680` is **0.166015625**. Episode II keeps
+the same table with the speeds converted to `float`. So the search was for one
+bit pattern followed immediately by another — 21 hits, and the table base is
+referenced from six places in code.
+
+**What confirms it is not the floats.** Every row has four `u16` counters at
+offset 32: `time_air` **1800**, `time_damage` **180**, `pool_max` **96**,
+`fall_wait_time` **24**. Those are Episode I's values, untouched, in Episode I's
+struct positions — packed two per dword where Episode I used four `int`s. No
+float search would have surfaced them. Four of the seven jump impulses also match
+Episode I to the bit.
+
+### The embarrassing part
+
+I had these numbers on screen an hour before I recognised them. Beat 23's hunt
+for the classic Genesis constants dumped the neighbourhood of `0.046875` and
+printed `5.64697` and `0.166016` two lines apart, and I read straight past them
+because I was looking for Sonic 1's values rather than Episode I's. The oracle
+was sitting in the repo the whole time.
+
+Lesson, and it is the same one as beat 20 and 23 in a new coat: **I keep
+searching for what I expect instead of for what the reference actually says.**
+
+### What Episode II retuned
+
+Same structure, different feel. Ground deceleration 0.125 against Episode I's
+0.25, slope factor 0.0625 against 0.046875, and **air drag 0.0625 against 0.5** —
+an eighth of Episode I's, so a jump carries far further. Mad Gear's top speed went
+6.0 to 10.0 and its coyote window 240 frames to 120. Gravity is 0.16602 in all
+seven rows.
+
+### The jump cut is not a clamp
+
+Worth recording because I would have implemented it wrong. The usual Mega Drive
+short hop clamps rise speed on button release. Episode I instead sets a flag if
+the button comes up while still rising faster than **4 px/frame**, and while that
+flag holds, applies gravity a **second time each frame** until the rise ends. So
+it is doubled gravity for the rest of the ascent, not a ceiling — and releasing
+near the apex does nothing at all. `Player` now does that.
+
+### Units
+
+Constants are game pixels per frame at 60 Hz. A collision cell is 64 game pixels
+(beat 23) and 20 world units — measured, not assumed: of 836 tile meshes across
+four zones, 259 are exactly 20 wide and 189 exactly 20 tall. So one game pixel is
+0.3125 world units, and `PlayerPhysics.WorldPerPixel` is that factor. The table
+keeps the game's own numbers and the player converts, so the values stay
+comparable against the binary.
+
+### Shipped
+
+`tools/physics.py`, generated `PlayerPhysics.cs` (all seven rows), `docs/PHYSICS.md`,
+`Player` rewired onto real constants with separate ground and air tuning, nine
+new tests.
+
+### Regression
+
+1,614 archives · 5,727 NN containers · 2,853 textures · 39 collision files ·
+714 object ids · 7 physics rows · **70 tests** — green.
+
+### Progress
+
+**≈54%.** Phase 3 ~90%, phase 4 ~20%.
+
+### Next
+
+1. **Wire `SurfaceAngleAt` into ground movement** so the recovered slope factors
+   do something. Both halves now exist and are not yet connected.
+2. Identify ids 715/724/716 by behaviour.
+3. Spin dash and rolling — the constants are already in the table, unused.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
