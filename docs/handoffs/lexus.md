@@ -2702,3 +2702,61 @@ the same struct.
 3. Damage, which needs its code read the way the spin dash was.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 38 — A matrix palette lead that does not hold up
+
+**2026-07-28 10:34 CEST (UTC+02:00)**
+
+Chasing the last piece before a character can be drawn. **It is not solved**, and
+this beat records why so the next attempt does not repeat it.
+
+The object header counts matrix palettes but has **no offset** for them, so they
+must live inside a subobject. A subobject is 20 bytes and only three of its five
+dwords are read — flags, mesh count, mesh offset — which makes the other two the
+obvious candidates.
+
+On Sonic they read **5** and **0x1062C**, and `0x1062C` holds `0, 1, 2, 3, 4`
+sitting immediately before the subobject record. A count and a palette of node
+indices is exactly what that looks like.
+
+It does not survive the corpus:
+
+| Check | Result |
+|-------|--------|
+| Palette offset lands inside the file | 4,955 / 4,955 |
+| Subobject counts sum to the header's `n_mtxpal` | **1,371 / 3,546** |
+| Palette entries index a valid node | **5,378 / 10,080** |
+
+Two of the three are near chance. Five small ascending numbers in a row is not
+rare enough to carry a conclusion, and I nearly wrote it up as one on the strength
+of a single model that agreed with me.
+
+**Recording a negative result costs one paragraph and saves an afternoon.** The
+alternative — writing "matrix palette decoded" on 53% agreement — is how the
+texture-coordinate bug in beat 37 survived for thirty beats.
+
+### What the next attempt should do
+
+Start from **the engine's own model loader** rather than from the data. That
+technique settled the collision addressing in beat 21, the object table in beat
+22 and the spin dash in beat 31, and it has not failed yet. `Sonic.exe` has to
+build a matrix palette to draw Sonic at all; finding where it reads one gives the
+layout directly instead of by inference.
+
+### Regression
+
+No code changed. Whole-solution build · **140 tests** — green.
+
+### Progress
+
+**≈65%.** Unchanged, correctly.
+
+### Next
+
+1. **The matrix palette, from the binary.** Find where `Sonic.exe` builds one.
+2. The Android head, once the SDK licence is accepted.
+3. Damage, which needs its code read the same way.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
