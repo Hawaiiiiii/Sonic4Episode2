@@ -233,6 +233,19 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
 - `stageview.py --region x,y,w,h` limits the assembly to a cell rectangle, which
   is what makes a textured render finish in reasonable time in pure Python.
 
+- **MOTIONS DECODED** - **1,481 of 1,481 parse, 0 failed**, with **296,072
+  channels and 3,184,997 key frames**. Header is 32 bytes (type, start, end,
+  submotion count/offset, frame rate); submotions are 40 bytes each, naming the
+  target node and its key data. Rates: 60fps x1410, 29.97 x69, 30 x2. All are
+  channel kind 1, node animation - no camera or light motions ship as `.ZNM`.
+- **Motion start frames can be negative.** Five Sonic transition animations begin
+  at -5 or -10 for blend pre-roll. Third time an over-strict validator flagged
+  correct data in this project; check the data before the parser.
+- Key frame *payloads* are still undecoded - channels say how many keys, what
+  size and where, but not yet what they contain. That is the next animation step.
+- **Audio is the remaining phase 2 gap**: CRI ADX2 `.CSB` cue sheets and the one
+  `.CPK` are completely untouched.
+
 ## Repository
 
 Public at **https://github.com/Hawaiiiiii/Sonic4Episode2**, branch `main`.
