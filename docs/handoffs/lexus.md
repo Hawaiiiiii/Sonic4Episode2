@@ -500,3 +500,75 @@ object id names, `.AME` effects, the exact engine placement transform, and the
 MojoShader assumption.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 7 — Shader risk retired; materials halted after three attempts
+
+**2026-07-27 16:36 CEST (UTC+02:00)**
+
+### Done — the biggest assumption in the plan is now evidence
+
+Since day one the mobile target has rested on "MojoShader can eat these shaders."
+That was the largest unproven claim in the roadmap. It is now checked.
+
+**All 1,843 shaders parse cleanly, 0 failures**, walking version token to end
+token. 922 `ps_3_0` and 921 `vs_3_0`, nothing else. **Every single one carries a
+`CTAB`.** 98,672 instructions across **26 distinct opcodes, all from the
+documented SM1-3 set** — no vendor extensions, nothing exotic.
+
+Free self-check that came out of it: `rep` and `endrep` appear exactly **373 times
+each**. An off-by-one in instruction-length stepping would desynchronise that
+pairing, so the balance independently confirms the token walk.
+
+Being careful about scope: this proves the bytecode is well-formed and standard.
+It does not prove MojoShader's GLSL ES output is correct or fast for these
+shaders, and `ps_3_0` wants ES 3.0 class hardware so ES 2.0 devices need
+fallbacks. That is a **quality and coverage risk, not a feasibility one** — a
+large downgrade from where the plan started.
+
+### Halted — materials, after three failed approaches
+
+Invoking the three-strikes rule rather than burning another session on it. All
+three attempts and their failure modes are written up in `docs/FORMAT-NN.md` so
+they are not repeated:
+
+1. **Measure the stride.** No stride exists — gaps vary within one model.
+2. **Sidestep via the subobject texture list.** Insufficient: 3 materials against
+   2 textures on `Z1_G_HASIRA_B`, so the selector really is in the material.
+3. **Correlate a flag word against size.** The pointer `fType` genuinely encodes
+   something — `0x30000000` descriptors are consistently exactly 4 bytes larger
+   than `0x10000000` — but the material's own leading `u32` does not determine the
+   rest: only 88 of 1,982 materials map to a unique size.
+
+**The flaw common to all three**, and the actually useful finding: *gap-to-next-
+descriptor is not the material's size*. Materials are individually referenced
+blobs with other structures interleaved between them, so the gap is an upper bound
+and every size-based inference built on it is unsound. That invalidates the method,
+not just the attempts.
+
+Materials are the first structure here the data cannot settle on its own. Next
+attempt goes at the binary with rizin: find the routine that reads a material from
+the object-loading path and read the layout out of the code.
+
+### Progress
+
+**≈23% overall, 0% runnable.** Phase 1 ~80%, phase 2 ~70%, phase 5 nudged off zero
+purely by the shader work de-risking it.
+
+### Next
+
+1. **Materials via rizin.** Unblocks textures on the assembled stages.
+2. **Run a shader through MojoShader for real** and inspect the GLSL ES. The
+   feasibility question is answered; this is about output quality.
+3. **`NZMO` motions** — nothing has touched animation yet, and 846 models are
+   skinned.
+
+### Open
+
+Materials, vertex colours, bits `0x40`/`0x100` on the wide strides, the unknown
+word at `+0x04` of the vertex descriptor, the 32 unknown bytes at `+0x70` of a
+node, `NOF0`, `NZMO` motions, `NZMA` morphs, `.EV` object id names, `.AME`
+effects, the exact engine placement transform, and MojoShader output quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
