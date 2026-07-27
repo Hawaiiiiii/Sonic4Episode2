@@ -100,3 +100,85 @@ MojoShader assumption underpinning the mobile target is unproven and should get 
 spike before anything depends on it.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 2 — NN container and object header decoded
+
+**2026-07-27 15:06 CEST (UTC+02:00)**
+
+### Done this beat
+
+**The SEGA NN container.** `.ZNO`, `.ZNM` and `.ZNV` are BINCNK: flat
+`tag[4] + u32 size` chunks running to `NEND`. All **5,727 containers parse, 0
+failures**. The census cross-checks exactly against the file extensions — 3,577
+`NZOB` against 3,577 `.ZNO`, 669 `NZMA` against 669 `.ZNV` — which is the real
+evidence the walk is correct rather than merely permissive.
+
+The tag's second letter is a platform code (`Z` D3D9, `X` Xbox, `G` GameCube,
+`I` GL ES). Episode I switches on chunk id `0x424F494E` = `NIOB`, the same chunk
+we read as `NZOB`, so the oracle applies directly.
+
+**The `NZOB` object header.** 88 bytes at `OfsData + OfsMainData`: bounding
+sphere and box, plus counts and offsets for materials, vertex lists, primitive
+lists, nodes, matrix palettes, subobjects and textures. **All 3,577 models parse
+sane, 0 failures.** 846 are skinned, 31 are locators.
+
+The layout validates itself arithmetically, which is the part worth trusting:
+`Z1_G_FL_A.ZNO` reports bbox `(10, 10, 0)` — a flat quad — with radius `14.14`,
+exactly √(10²+10²). A misaligned read does not produce that. `ENE_HOPPER.ZNO`
+comes back as 62 nodes at depth 8 with 35 matrix palettes, which is a skeleton
+and reads like one.
+
+### Corrections made
+
+- **`NZIF` field order was wrong** in beat 1's docs. It is `nChunk, OfsData,
+  SizeData, OfsNOF0, SizeNOF0, Version`, taken from Episode I's
+  `NNS_BINCNK_FILEHEADER`. The offsets I had been validating happened to sit at
+  the right indices so nothing broke, but the names were wrong and would have
+  misled the next reader.
+- **31 models were being rejected as broken.** They are geometry-less locators —
+  `CAMERA_POS`, `SONIC_POS`, `TAILS_POS`, `TORNADO_POS` — used as cutscene
+  anchors, with zero radius, zero bbox and `ftype 0x20` where real models set
+  bit 0. The parse was right; the sanity check was wrong. A reader that rejects
+  geometry-less objects throws away the cutscene camera rig.
+
+### Gotcha now written down
+
+**Every internal offset is relative to `OfsData` (0x20)**, not to the chunk and
+not to the file. Get that base wrong and you get a plausible-looking parse of
+nonsense, which is worse than a crash.
+
+### Progress
+
+`plans/EXECPLAN.md` now carries an effort-weighted table. **≈12% overall, 0%
+runnable.** Phase 1 is ~75% done and is genuinely front-loaded — it is where a
+sibling decompilation helps most. Phases 3 and 4 carry 55% of the weight between
+them and have not started.
+
+Recorded there explicitly, because it is an easy assumption to make: *the PC
+target is not already solved by working from a PC build*. SEGA's `Sonic.exe`
+running on Windows is the thing being replaced, not a deliverable, and in Beta 8
+it is Steam-locked anyway. Starting from x86 helps because of tooling and D3D9
+documentation, not because it hands us a working PC build.
+
+### Next
+
+Follow the object header's pointers — vertex lists and primitive lists first,
+since those put triangles on screen, then materials and the node tree. Start from
+`Z1_G_FL_A.ZNO`: 1 material, 1 vertex list, 1 primitive list, 1 node.
+
+Expect divergence from the oracle here. Episode I's material descriptor is
+`NNS_MATERIAL_GLES11_DESC`, OpenGL ES 1.1 fixed function; Episode II is
+shader-driven D3D9. The object header was platform-neutral, the vertex and
+material descriptors probably are not. Read the oracle for traversal shape, then
+verify every field against Episode II's bytes.
+
+### Open
+
+`NOF0` relocation table still undecoded. `.EV` object ids still have no name
+table. `.AME` effects untouched. The MojoShader assumption underpinning the whole
+mobile target remains unproven and should get a spike before anything depends
+on it.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
