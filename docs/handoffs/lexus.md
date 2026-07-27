@@ -2524,3 +2524,61 @@ Whole-solution build · **131 tests** — green.
    code read the way the spin dash was.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 35 — Node rotation was integers all along
+
+**2026-07-28 08:52 CEST (UTC+02:00)**
+
+To draw Sonic I need his 109-node skeleton posed, and `NnNode` was parsing
+translation at `+0x0C` and scale at `+0x24` with **the twelve bytes between them
+skipped as padding**.
+
+They are the rotation, stored as **signed 32-bit integers in A16** — 65536 to a
+full turn, the convention Episode I's `mtMathSin` uses. Read as floats the same
+bytes are denormals and NaNs, which is exactly why they got written off.
+
+Sonic's skeleton settles it without ambiguity: of 327 rotation words 129 are
+non-zero, they span -32768 to 19180, and the values that recur are **16384 and
+-32768** — a quarter turn and a half turn. No float reading produces round
+numbers like that.
+
+**The same lesson as beats 20, 23, 25 and 29, in yet another coat.** A field
+looked like garbage under the interpretation I brought to it, and I accepted that
+rather than asking what interpretation would make it not-garbage. Five times now.
+It is the single most reliable way this project wastes my time, and the fix is
+always the same: when data looks wrong, question the reading before the data.
+
+### What it unlocks
+
+`NodeTransforms.World` walks the tree into one matrix per node — scale, rotation
+Z then Y then X, then translation, composed with the parent. Verified across the
+whole build:
+
+- **846 of 846** multi-node models have a well-formed tree: one root, every link
+  in range, no cycle reachable by walking parents.
+- **846 of 846** produce finite world transforms.
+- Sonic's 109 joints span **0 to 10.73 world units** in Y — feet at the origin,
+  head at the top, against a model bounding box of 11.6. A standing skeleton, the
+  right way up, which is what you want when placing it at a player's feet.
+
+Every motion in `*_MTN.AMB` is expressed as a change to this pose, so this is the
+piece both static rendering and animation stand on.
+
+### Regression
+
+5,727 NN containers · 3,546 models · whole-solution build · **140 tests** — green.
+
+### Progress
+
+**≈64%.** Phase 2 ~97%.
+
+### Next
+
+1. Bind mesh sets to nodes and draw Sonic in his bind pose — the transforms exist
+   now, what is missing is which mesh belongs to which node.
+2. The Android head, once the SDK licence is accepted.
+3. Damage, which needs the damage code read the way the spin dash was.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
