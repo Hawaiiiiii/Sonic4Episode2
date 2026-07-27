@@ -83,6 +83,11 @@ surveyed and scoped. No engine or game code has been written yet.
   **651 banks** parse and every texture name resolves to a `.DDS` in the same
   archive. This is the tile-to-graphics link needed for a stage viewer.
 
+- **Textures are standard DDS.** Sampled 530 across zones 1-3: 465 DXT1, 37 DXT5,
+  22 DXT3, 6 uncompressed, all power-of-two (256x256 most common). No custom
+  wrapper, no swizzling — decoding is off-the-shelf, and the only mobile concern
+  is transcoding DXT to ETC2/ASTC where a device lacks S3TC.
+
 ## Tooling note
 
 **rizin is installed** and is the RE tool for this project — no Ghidra or IDA on
