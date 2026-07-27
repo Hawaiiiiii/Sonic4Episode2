@@ -960,3 +960,74 @@ node's trailing 32 bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects,
 the exact engine placement transform, and MojoShader output quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 13 — NN reader ported; the cross-check catches a real ambiguity
+
+**2026-07-27 19:36 CEST (UTC+02:00)**
+
+### Done
+
+The whole NN reader is now in C#: container walk, object header, vertex and
+primitive lists, mesh sets, nodes, materials, texture names, `NOF0` relocations
+and motions. Still no graphics dependency in `Core`, still building clean.
+
+It matches the Python tools **exactly**:
+
+| | |
+|---|---|
+| NN containers | 5,727, 0 failed |
+| Models | 3,577 (31 locators) |
+| Geometry | **2,820,398 vertices, 2,513,705 triangles** |
+| Motions | 1,481 carrying 296,072 channels |
+| Texture bindings | 11,224 / 11,224 resolve |
+
+### Except one — and it was worth the whole exercise
+
+C# reported **839** skinned models. Python said **846**.
+
+The seven-model gap turned out to be seven *camera rigs* — `CAMERA_POS`,
+`WM_CAMERA_PERSPECTIVE`, `WM_CAMERA_ORTHO`. Locators with 2 or 3 nodes at depth 2
+and **no vertices at all**. Python's `is_skinned` tested node depth alone and
+counted them; the C# path excluded locators before ever asking the question.
+
+**Neither implementation was buggy.** The *definition* was ambiguous. A
+geometry-less camera rig is not skinned in any sense that matters, so
+`is_skinned` now requires geometry on both sides and both report 839.
+
+This is the entire argument for porting rather than trusting: a single
+implementation would have carried that ambiguity silently forever. Two of them
+disagreeing by exactly seven pointed straight at it, and the fix improved the
+*specification*, not just the code.
+
+### Build note
+
+The first build failed with `CS9108` — `ReadOnlySpan` is ref-like and cannot be
+captured by a local function, which is what the concise `F(offset)` / `I(offset)`
+field readers were. They are static helpers taking the span explicitly now.
+
+### Progress
+
+**≈30% overall.** Phase 1 ~85%, phase 2 ~90%, phase 3 ~15%.
+
+Still **0% runnable game**. Everything C# so far is a verification harness; no
+game code executes.
+
+### Next
+
+1. **Port the DDS decoder and the stage assembler**, completing C# parity with
+   the Python tools.
+2. **Stand up a desktop head** — a window, a camera, one textured stage. That is
+   the first thing that is meaningfully runnable, and the point where the 0%
+   finally moves.
+3. Audio (CRI ADX2) still closes phase 2.
+
+### Open
+
+Unchanged: motion key payloads, CRI audio, the render-state block, vertex
+colours, wide-stride bits, the unknown vertex-descriptor word, the node's
+trailing 32 bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects, the
+exact engine placement transform, MojoShader output quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
