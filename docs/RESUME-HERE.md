@@ -15,7 +15,7 @@ failures. The binary has been surveyed and scoped.
 
 **A desktop viewer now runs** (MonoGame window, stage assembled live from the
 archives), but there is no player, physics or game logic, so the **playable game
-is still at 0%**. Overall progress against the full goal is roughly **35%**, and the
+is still at 0%**. Overall progress against the full goal is roughly **37%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -307,6 +307,20 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   request its own exit from inside its own update. A scene with nothing in branch
   slot 1 is linear and arms slot 0 automatically; a branching scene waits for a
   `DecideCase`.
+
+- **OBJECT SYSTEM DONE.** `GameObject` with its fixed per-frame procedure order
+  (view check, parent, asset gate, enter, update, move, collide, draw, last) plus
+  `ObjectManager`. **30 tests total, all passing.**
+- **The temp-offset dance is the subtle part.** Displacement from riding a
+  platform goes into `TempOffset`, not the position. Each frame the engine
+  subtracts last frame's offset before logic and adds this frame's after, so a
+  persistent push does not accumulate and a released one leaves no residue.
+  Writing straight to the position looks right until something rides a platform.
+- **Hit-stop releases on the frame the timer hits zero**, not the frame after -
+  the timer is decremented before the gate is tested. Getting it backwards costs
+  one frame of input response on every hit, which feels wrong and reads fine.
+- Objects step in creation order, so "A destroys B mid-frame" only skips B's
+  update if A was added first. Both orderings are pinned by tests.
 
 ## Repository
 
