@@ -15,7 +15,7 @@ failures. The binary has been surveyed and scoped.
 
 **A desktop viewer now runs** (MonoGame window, stage assembled live from the
 archives), but there is no player, physics or game logic, so the **playable game
-is still at 0%**. Overall progress against the full goal is roughly **32%**, and the
+is still at 0%**. Overall progress against the full goal is roughly **33%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -278,7 +278,9 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   opens a window and renders Zone 1 Act 1 assembled from the original archives:
   **17,526 tiles, 3,733,522 vertices, 1,593,407 triangles** - identical to the
   Python `stageview.py` numbers. Arrow keys pan, PageUp/Down zoom, Escape quits.
-  Verified running: process present with the window title set.
+  Verified running: process present with the window title set. **Textured** -
+  51 zone textures decoded and uploaded to `Texture2D`, geometry grouped by
+  texture at build time so each texture is one draw call.
 - DDS decoder ported too; C# and Python agree on all 2,853 textures and every
   format count (DXT1 1273, DXT5 832, DXT3 662, RAW32 78, RAW16 5, RAW8 3).
   **The whole asset layer now exists twice and agrees.**
