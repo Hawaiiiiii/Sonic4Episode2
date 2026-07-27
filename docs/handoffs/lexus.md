@@ -1303,3 +1303,69 @@ bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects, the exact engine
 placement transform, MojoShader output quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 18 — The engine boots on real data
+
+**2026-07-27 20:45 CEST (UTC+02:00)**
+
+### Done
+
+`GameEngine` ties the three subsystems together. Booting walks **`boot → stage`**,
+mounts Zone 1 Act 1 from the original archives, and registers `GM_MAP_MAIN` and
+`GM_EVT_MGR` in priority order. The desktop head no longer loads anything itself —
+it creates the engine, steps it, and renders what came out.
+
+**Phase 3's gate is met**: the engine boots through its scene table, mounts real
+data, and reaches a rendered frame. **38 tests passing.**
+
+### Integration found what six unit tests missed
+
+`EventSystem` entered the start scene from its *constructor*. The boot scene's
+enter callback reaches back into `GameEngine.Events` — which had not been assigned
+yet, because the constructor call was still in flight. Null reference on the very
+first frame.
+
+Two beats of unit tests never saw it, because none of those tests had a scene
+callback that referenced the event system. Only wiring it to something real
+produced one that did.
+
+Entering is now an explicit `Start()` after construction, with tests asserting
+that construction runs no callbacks and that `Start` is not repeatable.
+
+The general lesson, and a good argument against polishing components in
+isolation: **a constructor that invokes user callbacks into a half-built object
+graph is a classic hazard**, and no amount of unit-testing that constructor alone
+would have surfaced it. Integrating early is what found it.
+
+### Also
+
+Dropped the hand-rolled `Vector3` for `System.Numerics.Vector3`. Mine collided
+with MonoGame's the instant the head referenced both, and there was never a good
+reason for a second one — the standard type is SIMD-accelerated and everything
+interops with it.
+
+### Progress
+
+**≈39% overall.** Phase 1 ~85%, phase 2 ~90%, phase 3 ~60%.
+
+**Playable game still 0%.** The object manager runs every frame with nothing in
+it. That changes with the next item.
+
+### Next
+
+1. **A player object.** Position, velocity, gravity, ground collision against the
+   `_ATTR_` layers. The first thing that makes "playable" mean anything, and the
+   first place Episode I's guidance thins out — Episode II's physics is its own.
+2. **Camera** that follows the player rather than free pan.
+3. Audio (CRI ADX2) still closes phase 2.
+
+### Open
+
+Motion key payloads, CRI audio, the render-state block, vertex colours,
+wide-stride bits, the unknown vertex-descriptor word, the node's trailing 32
+bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects, the exact engine
+placement transform, MojoShader output quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
