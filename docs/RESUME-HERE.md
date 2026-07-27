@@ -14,7 +14,7 @@ set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
 failures. The binary has been surveyed and scoped.
 
 **No engine or game code has been written yet — nothing here runs the game on any
-platform.** Overall progress against the full goal is roughly **27%**, and the
+platform.** Overall progress against the full goal is roughly **28%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -245,6 +245,25 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   size and where, but not yet what they contain. That is the next animation step.
 - **Audio is the remaining phase 2 gap**: CRI ADX2 `.CSB` cue sheets and the one
   `.CPK` are completely untouched.
+
+- **PHASE 3 STARTED.** `src/` holds a C# solution: `Sonic4Episode2.Core`
+  (net8.0, **no graphics dependency** so the asset layer stays headless-testable)
+  and a `Sonic4Episode2.Cli` cross-check harness. Builds clean with SDK 9.0.316.
+- **The C# port agrees with the Python tools exactly** - 1,614 archives parsed,
+  0 failed, and every contained-type count identical (3794/3577/2853/1431/925/
+  922/921/669/651). Stage grids match on dimensions and occupancy too. Two
+  independent implementations agreeing is far stronger evidence for the format
+  spec than either passing alone.
+- Ported so far: `AmbArchive`, `StageGrid` (with the tile bitfield). The
+  blank-string-table index fallback is carried across **with its comment** -
+  that is the bug that silently lost ~25% of stage data, and it is easy to
+  reintroduce in a fresh port.
+- Design notes: AMB entries are slices over the archive buffer, not copies, so
+  mounting costs one read and nested archives cost nothing. net8.0 rather than
+  net9.0 because MonoGame's current release targets it and the mobile heads will
+  be `net8.0-android` / `net8.0-ios`.
+- **Build:** `dotnet build Sonic4Episode2/src` then
+  `dotnet run --project Sonic4Episode2/src/Sonic4Episode2.Cli -- verify .`
 
 ## Repository
 
