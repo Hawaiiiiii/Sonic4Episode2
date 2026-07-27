@@ -888,3 +888,75 @@ at `+0x04` of the vertex descriptor, the 32 unknown bytes at `+0x70` of a node,
 transform, and MojoShader output quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 12 — Phase 3 begins: C# core, cross-verified
+
+**2026-07-27 19:20 CEST (UTC+02:00)**
+
+### Done
+
+First engine code. `src/` holds a solution with **`Sonic4Episode2.Core`** — net8.0,
+**no graphics dependency** — and a **`Sonic4Episode2.Cli`** cross-check harness.
+Builds clean on SDK 9.0.316.
+
+Ported the two most thoroughly proven formats: the AMB container and the stage
+grids, including the tile bitfield.
+
+### The point of the port
+
+Not that C# can read a file. It is that **the port must produce the same numbers
+as the Python reference** — a disagreement would tell us one of the two is wrong
+and roughly where to look.
+
+It agrees exactly:
+
+- **1,614 archives parsed cleanly, 0 failed** — same as Python.
+- Every contained-type count identical: 3794 unnamed, 3577 `.ZNO`, 2853 `.DDS`,
+  1431 `.ZNM`, 925 `.AME`, 922 `.PSH`, 921 `.VSH`, 669 `.ZNV`, 651 `.TXB`.
+- Stage grids match on dimensions **and** occupancy percentages.
+
+Two independent implementations in different languages agreeing across 1,614
+archives and roughly 16,000 entries is a much stronger statement about the format
+spec than either one passing on its own.
+
+### Deliberate design choices
+
+- **No graphics dependency in Core.** The asset layer must stay testable headless
+  against the whole 1.2 GB data set, not only from inside a running game. That is
+  what made this cross-check possible at all.
+- **Entries are slices over the archive buffer, not copies.** Mounting costs one
+  read and nested archives cost nothing extra.
+- **net8.0, not net9.0**, because MonoGame's current release targets it and the
+  mobile heads will be `net8.0-android` / `net8.0-ios`.
+- The **blank-string-table index fallback is carried across with its comment**.
+  That is the bug that silently lost ~25% of stage geometry the first time, and a
+  fresh port is exactly where it would come back.
+
+### Progress
+
+**≈28% overall.** Phase 1 ~85%, phase 2 ~90%, **phase 3 ~8%** — off zero for the
+first time.
+
+Being precise about the headline number: this code builds and runs, but **no game
+code runs. The runnable game is still 0%.** A verification harness executing is
+not the game executing.
+
+### Next
+
+1. **Port the remaining readers** — NN container, geometry, materials, DDS — so
+   the C# side reaches parity with the Python tools and the same cross-check
+   applies to all of them.
+2. **Stand up a desktop head** and get a window with one textured stage on it.
+   That is the first moment anything is meaningfully "runnable".
+3. Audio (CRI ADX2) still closes phase 2.
+
+### Open
+
+Unchanged from beat 11: motion key payloads, CRI audio, the render-state block,
+vertex colours, the wide-stride bits, the unknown vertex-descriptor word, the
+node's trailing 32 bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects,
+the exact engine placement transform, and MojoShader output quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
