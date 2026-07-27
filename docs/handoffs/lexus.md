@@ -1937,3 +1937,76 @@ angle cells · 714 object ids · 7 physics rows · **75 tests** — green.
 3. Ground-relative motion, so the player runs along a slope rather than across it.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 26 — Rings were never an object id
+
+**2026-07-28 03:06 CEST (UTC+02:00)**
+
+### The question was wrong
+
+Beats 22 and 25 both ended with "identify ids 715, 724 and 716 — the most-placed
+objects in the game, almost certainly rings." They are not rings. **No `.EV` id is
+a ring.** Rings have their own file.
+
+`.RG` carries 192 to 489 records per act, exactly 12 in each boss arena, and none
+in cutscenes — **7,567 across the 34 acts**, every one inside its stage bounds.
+Nothing else in a Sonic act is numerous in that particular shape. A record is two
+bytes, a position and nothing else, because the type is implicit in the filename.
+
+I had the format documented since beat 12 with the note "consistent with ring
+placement" and then spent two beats looking for a ring in the object table
+anyway.
+
+### What actually sent me there
+
+The placement-pattern analysis. I measured how often each object id has a
+same-id neighbour at regular spacing, expecting rings to show up as tight runs.
+The top ids came back at 1-4%, which I first read as "my position decoding must
+be wrong."
+
+It was not wrong, and checking it was still the right move — it produced the
+better evidence:
+
+`Sonic.exe:0x0053d541` is the engine's own `.EV` streaming loop.
+
+```asm
+movzx edx, word [esi + 2]      ; object id
+movzx ecx, byte  [esi + 1]     ; local Y
+movzx eax, al                  ; local X, from [esi + 0]
+mov   ecx, 0x323               ; 803
+cmp   dx, cx
+jae   skip
+mov   eax, dword [edx*4 + 0x7031c8]
+```
+
+Byte 0 is local X, byte 1 local Y, id is the `u16` at 2 — confirmed from code
+rather than from "everything parses". And **803 is the engine's own bound on the
+dispatch table**, not a number I counted off a pointer run in beat 22.
+
+So the low run-fraction was telling the truth: those objects really are scattered
+singly, because they are not rings.
+
+### Shipped
+
+`RingPlacements`, a shared `BlockGrid.Walk` now backing both `.EV` and `.RG` so
+the bounds checks live in one place, rings loaded by the stage scene and reported
+in the mount status, six new tests. One of them asserts that no catalogue entry is
+named `Ring` — a wrong assumption is worth a test once it has cost two beats.
+
+### Regression
+
+**81 tests** green. 7,567 rings extracted across 34 acts.
+
+### Progress
+
+**≈56%.** Phase 4 ~25%.
+
+### Next
+
+1. Draw the rings — the viewer loads them and shows nothing yet.
+2. Ring collection: pickup radius, counter, loss on damage.
+3. Spin dash and rolling; constants already recovered and unused.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
