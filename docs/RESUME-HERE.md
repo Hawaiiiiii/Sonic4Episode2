@@ -123,6 +123,21 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   bbox (10,10,0) with radius 14.14 = sqrt(200).
 - **All internal offsets are relative to `OfsData`** (0x20), not to the chunk or
   file. Getting that base wrong yields a plausible-looking parse of nonsense.
+- **GEOMETRY EXTRACTS.** All **3,546 models with geometry, 0 failures** —
+  **2,820,398 vertices and 2,513,705 triangles**. `tools/nn.py export` writes
+  Wavefront OBJ. Vertex format flags decode by bit (0x1 position, 0x2 normal,
+  0x8/0x10 colours, 0x10000 texcoord) and every combination accounts for its
+  stride exactly. All 4,085 primitive lists are mode `0x4810`, triangle strips.
+- **Mesh sets are the binding, and they are 40 bytes not Episode I's 48.**
+  Vertex and primitive lists are NOT positionally paired: `NNS_MESHSET` carries
+  explicit `iVtxList`/`iPrimList`/`iMaterial`/`iNode`. Assuming positional
+  pairing fails on ~half the corpus; using Episode I's 48-byte stride fails on
+  more. Both fail with plausible-looking indices rather than obvious errors.
+  Stride was measured from the gap between each mesh set array and the texture
+  list after it, which divides exactly by the mesh set count.
+- Independent cross-check: `ENE_HOPPER.ZNO`'s extracted vertex bounds reproduce
+  its declared bounding box centre and half-extents to two decimals, from a
+  different region of the file.
 
 ## Repository
 
@@ -134,22 +149,23 @@ patterns case-insensitively, so `*.MD` silently swallows every `.md` file in
 
 ## Next step
 
-**Follow the object header's pointers.** The `NZOB` header is decoded; next are
-the lists it points at — vertex lists and primitive lists first, since those are
-what put triangles on screen, then materials and the node tree.
+**Build the stage viewer.** Everything it needs now exists: stage grids give tile
+ids, tile ids resolve to models, models yield geometry, texture banks name the
+DDS, and DDS is standard DXT. Assemble Zone 1 Act 1 by instancing each tile's
+model at its grid position and render it. That is the first artifact worth
+showing anyone.
 
-Start with `Z1_G_FL_A.ZNO`: 1 material, 1 vertex list, 1 primitive list, 1 node.
-It is the simplest possible case and the most-placed model in Zone 1. One quad on
-screen beats a complete parser.
+Two things to settle while doing it:
 
-Expect divergence from Episode I here. Its material descriptor is
-`NNS_MATERIAL_GLES11_DESC` — OpenGL ES 1.1 fixed function — while Episode II is
-shader-driven D3D9. The object header was platform-neutral; the vertex and
-material descriptors probably are not. Read `NNS_VTXLISTPTR` and `NNS_PRIMLISTPTR`
-in the oracle for the traversal shape, then verify every field against Episode
-II's bytes rather than assuming.
+1. **Vertex attributes beyond position** — the exporter writes positions only.
+   Texture coordinates are at a known stride and are needed for a textured view.
+2. **Materials**, to know which texture bank slot each mesh set uses. Expect a
+   different size from Episode I's `NNS_MATERIAL_GLES11_DESC`, per the mesh set
+   precedent.
 
-`NOF0` still needs decoding before any pointer chain is fully trustworthy.
+Scale note worth confirming: the floor tile is a 20x20 unit quad and stage cells
+were inferred at 64px, so the grid-to-world scale needs pinning down before
+instancing.
 
 After that, in rough order:
 
