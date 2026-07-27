@@ -1449,3 +1449,80 @@ wide-stride vertex bits, `NZMA` morphs, `.AME` effects, the exact engine
 placement transform, MojoShader output quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 20 — Collision shapes and object placements
+
+**2026-07-27 22:36 CEST (UTC+02:00)**
+
+Continued autonomously under the standing goal.
+
+### Collision shapes decoded
+
+`.DF`/`.DI`/`.AT` in `ZONE<n>_ATTR.AMB`: `u16 count, u16 records`, a `count*2`
+reserved block, then fixed records — **4096 bytes for `.DF`, 64 for the others**.
+The size equation holds exactly on all **39** stage files, across 4 KB to 327 KB,
+which is what makes the split trustworthy given the reserved block is empty.
+
+A `.DF` record is **64 cells of 64 bytes**, each cell a height per pixel column.
+Corpus-wide: 51,704 empty, 49,606 flat, **23,412 curved, 3,525 slope up, 3,465
+slope down**. That is the real ground geometry the current blocky collision is
+approximating.
+
+**A full cell is 32 units tall, not 63.** My first verifier capped heights at 63
+and immediately flagged a 72 as corrupt. Measured instead: over 8.4M height
+bytes, 0 and 32 dominate, 1..31 carry the shaped ground, and only **0.02%**
+exceed 63. **Fifth time** a check has been wrong rather than the data.
+
+### The thing that blocks using it
+
+**How an `_ATTR_` cell id selects a collision record is still unknown**, and
+until it is found the player keeps walking on boxes.
+
+The `count*2` region looks exactly like an id-to-record index and is entirely
+zero in every file. Zone 1 uses ATTR ids 481..1533 against only 79 `.DF` records,
+so the ids cannot index records directly either. This is not in the data.
+
+Tried and rejected this beat: the `AttrData` string turned out to sit at
+`0x6b3153` beside "Error reading Attributes." — TinyXML, not stage collision.
+The zone `_ATTR.AMB` paths *are* in the binary, so the next attempt is to xref
+one of those to the stage loader.
+
+### Object placements in the engine
+
+`EventPlacements` ports the `.EV` reader to C#. Zone 1 Act 1 yields **533
+placements**, matching the Python tool exactly.
+
+Selecting the base variant needed care: three ship per act and my first filter
+excluded any name containing `A` or `C`, which works on today's names and breaks
+the moment a zone letter appears in a stem. It now tests that the stem ends in a
+digit.
+
+Nothing spawns from them yet, and that is honest: **the object id to name mapping
+is unknown**, because the ~298 names are immediates inside each object's own code
+rather than a table.
+
+### Full regression
+
+1,614 archives · 651 texture banks · 5,727 NN containers · 3,546 models ·
+1,481 motions · 2,853 textures · 1,843 shaders · 8 CRI containers · 39 collision
+files · 47 tests — **green everywhere**.
+
+### Progress
+
+**≈46%.** Phase 1 ~92%, phase 2 ~95%, phase 3 ~80%, phase 4 ~3%.
+
+Phase 4 is still the wall: 35% of the project, sitting at 3%. Two unknowns gate
+almost all of it, and **both need the binary rather than the data** — the
+collision record mapping and the object id names.
+
+### Next
+
+1. **Xref a `ZONE<n>_ATTR.AMB` path string to the stage loader** and read the
+   collision addressing out of it. Unblocks real slopes.
+2. **Find the object id table** the same way. Unblocks spawning rings and springs
+   from the real placement data.
+3. **Recover the player physics constants.** Everything about feel is gated here.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
