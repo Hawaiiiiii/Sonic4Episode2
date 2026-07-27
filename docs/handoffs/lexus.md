@@ -1712,3 +1712,78 @@ both of its blockers are now gone).
 3. `.DI` surface angles, which feed slope physics once the player uses them.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 23 — `.DI` is surface angles, and it settles the height scale
+
+**2026-07-28 00:41 CEST (UTC+02:00)**
+
+### What a `.DI` byte is
+
+A **surface angle, a full turn per 256**, one per cell, measured in a Y-up frame —
+so it runs opposite to the grid, whose Y grows downward. Flat ground reads 0.
+
+`.DI` and `.DF` describe the same surfaces two different ways, so they can check
+each other: fit a least-squares gradient through a cell's height field, convert to
+degrees, compare against the stored byte. Across **23,474 shaped cells in all 13
+attribute archives the median disagreement is 5.7 degrees**, 75% inside 15. The
+residue is inherent — a curved cell has no single angle and the game stores one
+regardless.
+
+I found the convention by sweeping every combination of scale, sign and 90 degree
+offset rather than assuming one. Worth doing: my first guess (1:1 scale, positive
+sign) sat at 61 degrees median and looked like a dead end.
+
+### The part I did not expect
+
+**A height unit is two pixels**, and the angle fit is what proves it.
+
+A cell is 64 columns wide but heights only reach 32. Whether that meant a squat
+cell or a coarse vertical scale is *not answerable from the height data alone* —
+both readings are self-consistent. The angle fit decides it: at 1:1 the median
+error is 16.9 degrees, at 2:1 it is 5.7. Two independent files agreeing at one
+scale and not the other is about as clean as evidence gets here.
+
+That resolves a discrepancy I had noted twice and shrugged at.
+
+### Also this beat
+
+The stage loader now reads `.DI` alongside `.DF`, `CollisionMap` gained
+`SurfaceAngleAt`, and `collision.py angles` reproduces the whole validation.
+`CollisionShapes` carries `PixelsPerHeightUnit` and `DegreesPerAngleUnit` as
+named constants with the evidence in their doc comments.
+
+The player does not steer by these yet — that needs the physics constants, which
+is the next job.
+
+### Attempted, not solved: physics constants
+
+Searched the binary for the classic Genesis values on the theory that Dimps
+reused them. `0.046875`, `0.09375` and `6.5` all appear and are rare enough to be
+diagnostic, and `-0.21875` sits directly beside `0.09375` — gravity next to air
+acceleration, which is exactly how you would lay them out. But they sit in the
+compiler's constant pool with one code reference each, not in a physics struct,
+and the densest float-using functions in the binary turned out to be maths and
+tuning curves.
+
+Left running: a read of Episode I's decompiled physics constants, to get target
+values and field meanings before searching further. Searching by *value* with a
+known target is a far better bet than the structural hunt I tried here.
+
+### Regression
+
+1,614 archives · 5,727 NN containers · 39 collision files · 714 object ids ·
+**61 tests** — green.
+
+### Progress
+
+**≈51%.** Phase 3 ~88%.
+
+### Next
+
+1. **Player physics constants**, using Episode I's values as search targets.
+2. Have the player steer by `SurfaceAngleAt` once those exist.
+3. Identify ids 715/724/716 by behaviour.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
