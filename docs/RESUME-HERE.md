@@ -14,7 +14,7 @@ set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
 failures. The binary has been surveyed and scoped.
 
 **No engine or game code has been written yet — nothing here runs the game on any
-platform.** Overall progress against the full goal is roughly **20%**, and the
+platform.** Overall progress against the full goal is roughly **22%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -161,6 +161,20 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   200 bytes within one model. Unlike every other struct here, there is no single
   stride. One block is an RGBA colour. Still need whichever field selects the
   texture bank slot.
+
+- **STAGES ASSEMBLE** (`tools/stageview.py`). Zone 1 Act 1 instances **17,526
+  tiles** into 3.7M vertices / 1.6M triangles, and the orthographic projection
+  reproduces the silhouette the tile-grid render predicted — two independent
+  pipelines agreeing. Writes OBJ and PNG.
+- **A grid cell is 20 world units.** Dominant tile bbox in `ZONE1_M.AMB` is
+  exactly 20x20, with multi-cell pieces at 40 and 60.
+- **Models carry a fixed authored origin unrelated to placement.** Tile 32 at
+  cells (98,0)..(98,5) reports an identical centre every time — the tileset was
+  laid out side by side in an authoring scene. `stageview.py` re-centres each
+  model on its bounding box before instancing. This reconstructs the engine's
+  transform rather than reproducing it; correct silhouette, not proven exact.
+- Rendering note: lambert shading is useless here because nearly every face
+  points at the camera in a side-scroller. Colour by tile id instead.
 
 ## Repository
 
