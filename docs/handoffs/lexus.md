@@ -1098,3 +1098,71 @@ bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects, the exact engine
 placement transform, MojoShader output quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 15 — Textures in the live viewer
+
+**2026-07-27 20:02 CEST (UTC+02:00)**
+
+### Done
+
+The desktop viewer now renders **textured**. Zone 1 Act 1 loads **51 textures** —
+exactly the DDS count in `ZONE1_T.AMB` — decoded through the ported `DdsTexture`
+and uploaded to `Texture2D`, with the window staying up.
+
+Three pieces went in:
+
+- **Real UVs.** `TileMesh` had been writing placeholder zeros; it reads the
+  actual texture coordinates now.
+- **Texture grouping in `StageBatch`**, at build time rather than in the
+  renderer. A stage draws from dozens of textures across thousands of tiles, so
+  sorting once turns a per-tile texture switch into one draw call per texture.
+  Each batch is still chunked, because `DrawUserIndexedPrimitives` has its own
+  per-call primitive limit.
+- **A generalised attribute reader.** Positions and texture coordinates were
+  separate code paths doing identical offset arithmetic, and normals will want
+  the same shortly.
+
+### Worth remembering
+
+The **V axis flips on upload**, exactly as the OBJ exporter needs. It is noted in
+both places now, because it is the class of mistake that silently mirrors every
+texture in the game and looks almost right.
+
+### What is and is not verified here
+
+The window runs, the textures decode, the batches build, and the counts line up.
+What I have *not* done is put eyes on the rendered frame — the offline Python
+rasteriser already produced the visual proof back in beat 10 (recognisable
+sandstone, water and foliage), so the pixels are established; this beat
+establishes that the same chain works inside a real graphics context.
+
+### Progress
+
+**≈33% overall.** Phase 1 ~85%, phase 2 ~90%, phase 3 ~30%.
+
+**Playable game remains 0%.** Still a viewer: no player, no physics, no logic.
+
+### Next
+
+The asset era really is finished now, and what remains in phase 3 is the engine
+proper — the part Episode I can guide most directly:
+
+1. **Task scheduler** (`amTask`/`mtTask`) — the priority-ordered TCB list every
+   subsystem hangs off.
+2. **State machine** (`SyEventSystem`) — the scene table and transitions.
+3. **Object system** (`OBS_OBJECT_WORK` and its procedure slots).
+
+Then a player, and only then does "playable" start meaning anything.
+
+Audio (CRI ADX2) still closes phase 2 and remains untouched.
+
+### Open
+
+Motion key payloads, CRI audio, the render-state block, vertex colours,
+wide-stride bits, the unknown vertex-descriptor word, the node's trailing 32
+bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects, the exact engine
+placement transform, MojoShader output quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
