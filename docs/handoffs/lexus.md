@@ -2340,3 +2340,74 @@ Whole-solution build · **115 tests** — green.
 3. A character model instead of a blue rectangle.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 32 — Everything a phone needs except the phone
+
+**2026-07-28 07:04 CEST (UTC+02:00)**
+
+Phones are the point of this project and phase 5 had been the least touched. Beat
+30 got the core library off the filesystem; this beat finishes the portability
+work and stops at the one thing that is not mine to decide.
+
+### Done and verified
+
+**`VirtualPad`** maps touch points to the same three inputs a keyboard gives.
+Steering on the left, jump above crouch on the right, all as fractions of the
+screen so it survives any resolution — tested at 1920x1080, 2400x1080 and
+1080x2400. Jump sits directly above crouch on purpose: a spin dash is one thumb
+holding crouch while the other taps jump, so the layout has to allow that exact
+pair, and a test asserts it does.
+
+**`IInputSource`** lets a head supply input without the renderer knowing how.
+
+**The renderer is now platform-neutral.** `StageViewerGame` used to take an
+installed game directory and sweep it with `Directory.EnumerateFiles` for texture
+archives. It takes an `IContentSource` and an optional `IInputSource` now, so the
+same class can be the Android head's game class unchanged.
+
+**End to end**: Zone 1 Act 1 mounts through a content source and Sonic runs under
+touch input on a 1080x2400 portrait screen, reaching 2.655 world units per frame
+after 240 frames — exactly `0.0354 * 0.3125 * 240`.
+
+### Where I stopped, and why
+
+`dotnet workload install android` succeeded; the workload is at `35.0.105`. But an
+Android build also needs the **Android SDK** and a **JDK**, which the workload does
+not bring:
+
+```
+error XA5300: The Android SDK directory could not be found.
+```
+
+The supported fix passes `-p:AcceptAndroidSDKLicenses=True`. **That accepts
+Google's licence terms**, which is a legal acceptance belonging to whoever owns the
+machine — not to a build command running unattended at 7am. So I left it.
+
+I could have written the Android head anyway. It would be a few hundred lines I
+could not compile, could not run, and would have to describe as done on faith.
+Instead everything verifiable without a device is verified, and
+`docs/MOBILE.md` lists precisely what remains: the project file, an
+`AndroidContent` over `AssetManager`, a `TouchInput` feeding `VirtualPad`, and a
+`MainActivity`.
+
+One thing the director should decide before that head is written: **the game data
+is several gigabytes**, far past what an APK can carry, so it has to be sideloaded
+to external storage with the content source pointed at it.
+
+### Regression
+
+Whole-solution build · **124 tests** · Zone 1 driven by touch — green.
+
+### Progress
+
+**≈61%.** Phase 5 up from 6% to 12%; phase 3 to 93%.
+
+### Next
+
+1. The Android head, once the SDK is installed.
+2. Ring loss on damage and the 50-ring Super threshold.
+3. A character model instead of a blue rectangle.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
