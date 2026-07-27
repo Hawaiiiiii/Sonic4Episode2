@@ -14,7 +14,7 @@ set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
 failures. The binary has been surveyed and scoped.
 
 **No engine or game code has been written yet — nothing here runs the game on any
-platform.** Overall progress against the full goal is roughly **17%**, and the
+platform.** Overall progress against the full goal is roughly **19%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -140,6 +140,19 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
 - Independent cross-check: `ENE_HOPPER.ZNO`'s extracted vertex bounds reproduce
   its declared bounding box centre and half-extents to two decimals, from a
   different region of the file.
+- **Node tree decoded — 144 bytes**, where Episode I's is 112. Second size
+  divergence after the mesh set. Verified on all **846 multi-node models**: links
+  in range, exactly one root each, finite non-zero scales. Strides 136 and 152
+  fail on 846 and 845. Found by dumping the array and spotting the repeat after
+  a brute-force sweep found nothing universal.
+- **Texture coordinates and normals extract.** Attributes pack in fixed order
+  with no padding (position, normal, diffuse, specular, texcoord), so an
+  attribute's offset is the sum of the present ones before it. OBJ export now
+  writes positions, UVs and normals; UV needs its V axis flipped for OBJ.
+- **Materials are variable-size** — flag-driven optional blocks, gaps of 196 and
+  200 bytes within one model. Unlike every other struct here, there is no single
+  stride. One block is an RGBA colour. Still need whichever field selects the
+  texture bank slot.
 
 ## Repository
 
