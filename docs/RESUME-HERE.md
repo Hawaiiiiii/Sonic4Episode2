@@ -15,7 +15,7 @@ failures. The binary has been surveyed and scoped.
 
 **A desktop viewer now runs** (MonoGame window, stage assembled live from the
 archives), but there is no player, physics or game logic, so the **playable game
-is still at 0%**. Overall progress against the full goal is roughly **37%**, and the
+is still at 0%**. Overall progress against the full goal is roughly **39%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -321,6 +321,19 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   one frame of input response on every hit, which feels wrong and reads fine.
 - Objects step in creation order, so "A destroys B mid-frame" only skips B's
   update if A was added first. Both orderings are pinned by tests.
+
+- **THE ENGINE BOOTS ON REAL DATA.** `GameEngine` ties scheduler, scene machine
+  and object manager together. Booting runs `boot -> stage`, mounts Zone 1 Act 1
+  from the original archives and registers `GM_MAP_MAIN` and `GM_EVT_MGR` in
+  priority order. The desktop head no longer loads anything itself - it steps the
+  engine and renders what the engine produced. **38 tests passing.**
+- **Initialization-order bug the integration caught:** `EventSystem` used to enter
+  the start scene from its constructor, so the boot scene's callback reached back
+  into `GameEngine.Events` before that field was assigned. Entering is now an
+  explicit `Start()` after construction. Unit tests never saw it because none of
+  them had a scene callback that referenced the system - only wiring it up did.
+- `Vector3` now comes from `System.Numerics` rather than a hand-rolled one, which
+  collided with MonoGame's.
 
 ## Repository
 
