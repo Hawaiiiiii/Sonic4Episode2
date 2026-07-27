@@ -272,3 +272,82 @@ beyond position, the unknown word at `+0x04` of the vertex descriptor, `NOF0`,
 assumption.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 4 — Node tree, texture coordinates, and materials parked
+
+**2026-07-27 15:42 CEST (UTC+02:00)**
+
+### Done
+
+**Node tree decoded — 144 bytes.** Episode I's `NNS_NODE` is 112, so this is the
+second size divergence after the mesh set, same lesson landing twice. Verified by
+walking the tree on all **846 multi-node models**: every parent, child and sibling
+index in range, exactly one root per model, every scale finite and non-zero.
+Strides of 136 and 152 fail on 846 and 845 models, so 144 is not a permissive fit.
+
+This matters because models carry **authored world positions**, not origin-centred
+geometry — `Z1_G_FL_A.ZNO` sits at x −140..−120 rather than 0..20. Mesh sets name
+a node, so the tree is what places geometry correctly when a stage is assembled.
+
+**Texture coordinates and normals extract.** Attributes pack in fixed order with
+no padding — position, normal, diffuse, specular, texcoord — so an attribute's
+offset is the sum of the sizes of those present before it. The OBJ exporter now
+writes all three; the floor tile comes out with clean 0/1 corner UVs and every
+normal facing +Z, which is what a flat quad should be. OBJ needs its V axis
+flipped.
+
+Full build still extracts clean with node validation added to the pass: 3,546
+models, 0 failures.
+
+### How the node stride was actually found
+
+Worth recording, because the efficient method was the unglamorous one. A
+brute-force sweep over eight plausible strides found **nothing** that worked
+everywhere — the best was 120 at 257 of 846 models. Dumping the raw node array
+and looking for the visual repeat found 0x90 in about a minute, because the
+`cf 00 00 00 ff ff ff ff 01 00 ff ff` pattern restarts obviously.
+
+Generate-and-test is the wrong first instinct on a format like this. Read the
+bytes.
+
+### Materials — deliberately parked
+
+Materials are the odd structure here: **variable size**. The material pointer's
+`fType` differs per material (`0x10000000`, `0x30000000`) and gaps between
+consecutive descriptors vary *within a single model* — 196 and 200 bytes in
+`Z1_G_HASIRA_B.ZNO`. So the layout is flag-driven with optional blocks, and there
+is no single stride to measure.
+
+One block is clearly RGBA: `(0.255, 0.494, 0.541, 1.000)`. The field actually
+needed is whichever selects the texture bank slot.
+
+Parked rather than pushed, because it is a genuine rabbit hole and the beat had
+already banked two verified results. Next session can take it fresh.
+
+### Progress
+
+**≈19% overall, 0% runnable.** Phase 1 ~80%, phase 2 ~50%.
+
+### Next
+
+Assemble the stage viewer. Inputs that now exist: grids give tile ids, tile ids
+resolve to models, models yield positioned geometry with UVs, texture banks name
+the DDS, DDS is plain DXT.
+
+The remaining blocker is the material → texture-slot link, so either crack
+materials or find the mapping another way — the subobject carries its own texture
+index list, which may be enough on its own.
+
+Also still to confirm: grid-to-world scale. The floor tile is a 20×20 unit quad
+while stage cells were inferred at 64px from the `.EV` block pitch.
+
+### Open
+
+Materials, vertex colours, bits `0x40`/`0x100` on the wide strides (probably
+blend weights and indices), the unknown word at `+0x04` of the vertex descriptor,
+the 32 unknown bytes at `+0x70` of a node, `NOF0`, `NZMO` motions, `NZMA` morphs,
+`.EV` object id names, `.AME` effects, and the unproven MojoShader assumption.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
