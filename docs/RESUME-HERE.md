@@ -14,7 +14,7 @@ set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
 failures. The binary has been surveyed and scoped.
 
 **No engine or game code has been written yet — nothing here runs the game on any
-platform.** Overall progress against the full goal is roughly **25%**, and the
+platform.** Overall progress against the full goal is roughly **27%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -212,6 +212,22 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
 - This also explains the `fType` size correlation: `0x30000000` materials are 4
   bytes larger than `0x10000000` ones precisely because that flag carries the
   optional texture-map pointer.
+
+- **TEXTURED STAGE RENDERING WORKS.** `tools/dds.py` decodes **2,853/2,853
+  textures, 0 failed** (DXT1 1273, DXT5 832, DXT3 662, RAW32 78, RAW16 5, RAW8 3)
+  with no third-party dependency. `stageview.py` samples them per triangle:
+  a 1,851-tile region of Zone 1 Act 1 renders with **240,041 of 240,041 textured
+  triangles resolved**, coming out as recognisable sandstone brickwork, water and
+  foliage.
+- Full asset chain verified end to end:
+  `AMB -> grid -> tile id -> model -> mesh set -> material -> texture index ->
+  NZTL -> DDS -> pixels -> UV-mapped geometry`.
+- DDS notes: uncompressed formats are handled mask-driven rather than by depth,
+  since the build ships L8 luminance and X1R5G5B5 alongside B8G8R8A8. The six
+  `NULL.DDS` files decode to fully transparent and that is **correct** - they are
+  8x8 blank placeholders, so do not treat transparency as a decode failure.
+- `stageview.py --region x,y,w,h` limits the assembly to a cell rectangle, which
+  is what makes a textured render finish in reasonable time in pure Python.
 
 ## Repository
 
