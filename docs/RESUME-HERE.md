@@ -15,7 +15,7 @@ failures. The binary has been surveyed and scoped.
 
 **A desktop viewer now runs** (MonoGame window, stage assembled live from the
 archives), but there is no player, physics or game logic, so the **playable game
-is still at 0%**. Overall progress against the full goal is roughly **33%**, and the
+is still at 0%**. Overall progress against the full goal is roughly **35%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -288,6 +288,25 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   `dotnet run --project Sonic4Episode2/src/Sonic4Episode2.Desktop -- . G_ZONE1/MAP/ZONE11_MAP.AMB`
 - **Build:** `dotnet build Sonic4Episode2/src` then
   `dotnet run --project Sonic4Episode2/src/Sonic4Episode2.Cli -- verify .`
+
+- **ENGINE CORE STARTED.** `Core/Engine` has the **task scheduler** and the
+  **scene state machine**, with **16 xunit tests, all passing**
+  (`dotnet test Sonic4Episode2/src`).
+- Three scheduler behaviours the tests pin down, because all three are easy to
+  get wrong and each is depended on somewhere:
+  1. **Priority order**, with equal priorities keeping creation order.
+  2. **Deferred deletion** - a task may delete itself or another mid-frame; the
+     unlink happens after every procedure has run. A task deleted earlier in the
+     same frame is skipped rather than running one last time.
+  3. **The pause gate is inverted from the obvious reading**: a task is *skipped*
+     when its own pause level is <= the system level, and the system level is -1
+     when nothing is paused. Tasks can also be made pause-immune.
+- Task creation during a frame is deferred to the next one, so the walk is never
+  disturbed.
+- Scene transitions are **deferred by one step**, which is what lets a scene
+  request its own exit from inside its own update. A scene with nothing in branch
+  slot 1 is linear and arms slot 0 automatically; a branching scene waits for a
+  `DecideCase`.
 
 ## Repository
 
