@@ -14,7 +14,7 @@ set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
 failures. The binary has been surveyed and scoped.
 
 **No engine or game code has been written yet — nothing here runs the game on any
-platform.** Overall progress against the full goal is roughly **19%**, and the
+platform.** Overall progress against the full goal is roughly **20%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -149,6 +149,14 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   with no padding (position, normal, diffuse, specular, texcoord), so an
   attribute's offset is the sum of the present ones before it. OBJ export now
   writes positions, UVs and normals; UV needs its V axis flipped for OBJ.
+- **Texture list (`NZTL`) decoded** — 20-byte entries, the one struct matching
+  Episode I's size. **9,665 of 9,815 references (98.5%) resolve to a real DDS.**
+  The 150 that do not are effect/cutscene textures living in separately loaded
+  archives. Names keep authored casing; `_dif`/`_spe`/`_env` suffixes.
+- Mesh-to-texture binding is **partially** solved: a subobject lists `s32`
+  indices into `NZTL`, but `Z1_G_HASIRA_B` has 3 materials against 2 textures, so
+  the final selector sits in the material. Single-texture models are unambiguous,
+  which covers most stage tiles.
 - **Materials are variable-size** — flag-driven optional blocks, gaps of 196 and
   200 bytes within one model. Unlike every other struct here, there is no single
   stride. One block is an RGBA colour. Still need whichever field selects the
