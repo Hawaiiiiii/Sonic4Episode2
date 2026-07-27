@@ -2010,3 +2010,62 @@ named `Ring` — a wrong assumption is worth a test once it has cost two beats.
 3. Spin dash and rolling; constants already recovered and unused.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 27 — Rings on screen, and a broken build I had been calling green
+
+**2026-07-28 03:41 CEST (UTC+02:00)**
+
+### Correction first
+
+**Beats 24 and 25 reported a green regression while the Desktop head did not
+compile.** Beat 24 changed `Player.Width` and `Player.Height` from `const` to
+computed properties, which broke two `const float` locals in
+`StageViewerGame.DrawPlayerMarker`. I never saw it because my regression ran
+`dotnet test`, and **the test project does not reference the Desktop project**, so
+its dependency graph never included the thing I had broken.
+
+Two beats of "green" that were not. The tools and the tests were genuinely fine
+and the library was fine; the playable head was not.
+
+The regression now runs `dotnet build` across the whole solution before
+`dotnet test`, and `docs/RESUME-HERE.md` says so in bold. The general lesson is
+one I should have already had: **a test run only proves what it compiles.**
+
+### Rings are visible
+
+The viewer draws a quad per uncollected ring, behind the player marker, and the
+title bar carries a live count. `RingField` owns which have been taken and does a
+rectangle overlap against Episode I's player body box (16 wide, 19 up and 13 down
+from the feet) inflated by the ring's 16 pixels — a rectangle rather than a radius,
+because that is what the original does and the two disagree at the corners.
+
+Collection runs as its own scheduler task at object priority, so it obeys pause
+levels and is torn down with the scene like everything else.
+
+The conversion is worth stating because it ties three separate findings together:
+ring positions are stage pixels, a cell is 64 stage pixels (beat 23, from the
+collision height field) and 20 world units (beat 24, measured off 836 tile
+meshes), so rings place through the same `PlayerPhysics.WorldPerPixel` the physics
+uses. Rings landing on the geometry is a check on all three at once.
+
+### Regression
+
+1,614 archives · 5,727 NN containers · 3,546 models · 2,853 textures · 651
+texture banks · 1,843 shaders · 8 CRI containers · 39 collision files · 23,474
+angle cells · 714 object ids · 7 physics rows · **whole-solution build** ·
+**88 tests** — green, and this time that includes the Desktop head.
+
+### Progress
+
+**≈57%.** Phase 4 ~28%.
+
+### Next
+
+1. Ring loss on damage, and the 50-ring Super threshold.
+2. Spin dash and rolling; the constants have been sitting recovered and unused
+   for three beats now.
+3. A character model for the player, instead of a blue rectangle.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
