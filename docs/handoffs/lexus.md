@@ -822,3 +822,69 @@ names, `.AME` effects, the exact engine placement transform, and MojoShader outp
 quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 11 — Motions decoded, .NET SDK installed, phase 3 unblocked
+
+**2026-07-27 19:02 CEST (UTC+02:00)**
+
+### Done
+
+**Motions.** All **1,481 parse, 0 failed** — **296,072 channels carrying
+3,184,997 key frames**. The 32-byte header and 40-byte submotion both match
+Episode I's sizes, which is a change from the mesh set and node that diverged.
+
+Rates: 60fps x 1,410, NTSC 29.97 x 69, 30 x 2. Every motion in the build is
+channel kind 1 (node animation) — no camera or light motions ship as `.ZNM`.
+
+**.NET SDK 9.0.316 installed** via winget, and smoke-tested rather than assumed:
+`dotnet new console` restores, builds and runs. The machine already had the 8 and
+9 runtimes, which is why `dotnet` existed on PATH while `--list-sdks` came back
+empty. **Phase 3 is no longer blocked on tooling.**
+
+### A pattern worth naming
+
+Five Sonic transition animations start at *negative* frames (-5, -10) for blend
+pre-roll and my first validator flagged them as corrupt. Perfectly legitimate
+data.
+
+That is the **third** time in this project an over-strict check has flagged
+correct data:
+
+1. Geometry-less cutscene locators (`CAMERA_POS.ZNO`) rejected as broken models.
+2. `NULL.DDS` rejected for decoding fully transparent — it is a blank placeholder.
+3. Negative motion start frames rejected as impossible.
+
+The tell is identical every time: **a handful of files fail while thousands
+pass.** When that happens, suspect the check before the data. Written down
+because it has now cost time three times.
+
+### Progress
+
+**~27% overall, 0% runnable.** Phase 1 ~85%, phase 2 ~90%.
+
+Motions moved phase 2 by only two points because **audio is the real remaining
+gap there** — CRI ADX2 `.CSB` cue sheets and the single `.CPK` are completely
+untouched, and they are a meaningful slice of that phase.
+
+### Next
+
+The asset era is essentially over and the next work is a different kind:
+
+1. **Phase 3 — start the engine.** Now unblocked. This is the only thing that
+   moves the runnable figure off zero, and it is where the honest difficulty
+   begins: no oracle for Episode II's own logic, and no "run it against 3,577
+   files and count zero failures" to tell you it is right.
+2. **Audio** (CRI ADX2) to close phase 2 properly.
+3. **Motion key payloads** — channels are mapped, key contents are not.
+
+### Open
+
+Motion key frame payloads, CRI audio, the render-state block's packed `u16`
+pairs, vertex colours, bits `0x40`/`0x100` on the wide strides, the unknown word
+at `+0x04` of the vertex descriptor, the 32 unknown bytes at `+0x70` of a node,
+`NZMA` morphs, `.EV` object id names, `.AME` effects, the exact engine placement
+transform, and MojoShader output quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
