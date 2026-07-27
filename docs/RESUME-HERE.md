@@ -16,7 +16,7 @@ failures. The binary has been surveyed and scoped.
 **A playable slice now runs**: you can run and jump on Zone 1 Act 1's real
 geometry, with collision from the stage's own `_ATTR_` layer. **The physics
 constants are placeholders**, chosen to feel plausible at this scale rather than
-recovered from the binary, and there are no objects, enemies or goal yet. Overall progress against the full goal is roughly **45%**, and the
+recovered from the binary, and there are no objects, enemies or goal yet. Overall progress against the full goal is roughly **46%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -387,6 +387,16 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   is not in the data; it needs the binary. Until then `CollisionMap` stays blocky.
 - 55 further collision files in the `*_COL.AMB` gimmick archives have **no header
   at all** and need a separate path.
+
+- **Object placements load in the engine.** `EventPlacements` ports the `.EV`
+  reader to C#; Zone 1 Act 1 yields **533 placements**, matching the Python tool
+  exactly. Positions are absolute (block * 256 + local).
+- The base `.EV` variant is selected by its stem ending in a **digit** -
+  `ZONE11.EV` rather than `ZONE11A.EV`/`ZONE11C.EV`. What actually selects
+  between the three is still unknown.
+- Nothing is spawned from them yet, because **the object id to name mapping is
+  unknown** - the ~298 names are immediates inside each object's own code, not a
+  table. A placement is currently a position and a number.
 
 ## Repository
 
