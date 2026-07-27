@@ -16,7 +16,7 @@ failures. The binary has been surveyed and scoped.
 **A playable slice now runs**: you can run and jump on Zone 1 Act 1's real
 geometry, with collision from the stage's own `_ATTR_` layer. **The physics
 constants are placeholders**, chosen to feel plausible at this scale rather than
-recovered from the binary, and there are no objects, enemies or goal yet. Overall progress against the full goal is roughly **44%**, and the
+recovered from the binary, and there are no objects, enemies or goal yet. Overall progress against the full goal is roughly **45%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -370,6 +370,23 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   (`ep2_sng_title`, `ep2_sng_z1a1`).
 - Still open on audio: walking the CPK's TOC to individual files, and decoding
   the ADX/HCA waveforms themselves.
+
+- **COLLISION SHAPES DECODED** (`docs/FORMAT-COLLISION.md`, `tools/collision.py`).
+  `.DF`/`.DI`/`.AT` in `ZONE<n>_ATTR.AMB`: `u16 count, u16 records`, a
+  `count*2`-byte reserved block that is **zero everywhere**, then fixed records -
+  **4096 bytes for `.DF`, 64 for `.DI`/`.AT`**. **39/39 stage files parse.**
+- A `.DF` record is **64 cells of 64 bytes**, each cell a height per pixel column.
+  Corpus-wide shapes: 51,704 empty, 49,606 flat, **23,412 curved, 3,525 slope up,
+  3,465 slope down** - the real ground geometry that the current blocky collision
+  is approximating.
+- **A full cell is 32 units tall, not 63.** Measured over 8.4M height bytes: 0 and
+  32 dominate, 1..31 carry the shaped ground, and only **0.02%** exceed 63.
+- **STILL OPEN and blocking use: how an `_ATTR_` cell id selects a record.** The
+  `count*2` region looked like an id-to-record index but is entirely zero, and
+  Zone 1's act uses ATTR ids 481..1533 against only 79 `.DF` records. The mapping
+  is not in the data; it needs the binary. Until then `CollisionMap` stays blocky.
+- 55 further collision files in the `*_COL.AMB` gimmick archives have **no header
+  at all** and need a separate path.
 
 ## Repository
 
