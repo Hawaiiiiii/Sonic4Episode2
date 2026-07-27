@@ -422,3 +422,81 @@ descriptor, the 32 unknown bytes at `+0x70` of a node, `NOF0`, `NZMO` motions,
 MojoShader assumption underpinning the mobile target.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 6 — Whole stages assemble and render
+
+**2026-07-27 16:13 CEST (UTC+02:00)**
+
+### Done
+
+`tools/stageview.py` closes the chain end to end: grids give tile ids, ids index
+the tileset, models yield geometry, and the result is instanced onto the grid.
+
+**Zone 1 Act 1: 17,526 tiles instanced, 3 skipped — 3.7M vertices, 1.6M
+triangles.** Zone 4 Act 1 assembles too, 528 tiles with 0 skipped, and its sparse
+scattered-platform layout is exactly what an airship level should look like.
+
+### The check that matters
+
+Projecting the assembled 3D geometry orthographically down Z reproduces **the
+same silhouette the tile-grid PNG predicted several beats ago**. Those are two
+entirely independent pipelines — colour-per-tile-id on a flat 2D grid, versus
+real instanced 3D geometry through container, object header, mesh sets, vertex
+lists and index strips — and they agree on the shape of the level.
+
+Every decode in the chain would have had to be wrong in a mutually cancelling way
+for that to happen by accident.
+
+### Two placement facts, both measured
+
+**A cell is 20 world units.** The dominant tile bounding box in `ZONE1_M.AMB` is
+exactly 20×20 (44 models wide, 53 tall), with multi-cell pieces at 40 and 60.
+
+**Models carry a fixed authored origin unrelated to placement.** This one started
+as a failed hypothesis: I expected a model's centre to correlate with its grid
+cell. It does not — tile 32 appears at cells (98,0) through (98,5) reporting an
+*identical* centre every time. The tileset was authored side by side in one
+scene, and the engine translates pieces onto the grid. So each model is re-centred
+on its own bounding box before instancing.
+
+Being precise about what that means: **this reconstructs the engine's transform,
+it does not reproduce it.** The silhouette is right; exactness is unproven and
+should not be claimed.
+
+### Rendering aside
+
+Lambert shading was useless here — nearly every face in a side-scroller points at
+the camera, so it came out uniformly flat. Colouring by tile id is what made the
+structure legible, and it has the side benefit of being directly comparable to the
+tile-grid render.
+
+### Progress
+
+**≈22% overall, 0% runnable.** Phase 1 ~80%, phase 2 ~65%.
+
+Phase 2's gate is **partially met**: stages render from original archives, but
+textures are still absent (blocked on materials) and motion playback is untouched.
+
+### Next
+
+Two candidates, and materials is the one that unblocks the most:
+
+1. **Materials.** Third attempt, and this time go at the binary with rizin rather
+   than the data — the struct is variable-size with flag-driven optional blocks,
+   so there is no stride to measure and the field layout has to come from the
+   code that reads it. Unblocks textures on the geometry.
+2. **The MojoShader spike.** Still the largest unproven assumption in the plan,
+   and the entire mobile target rests on it. Cheap to test, expensive to be wrong
+   about late.
+
+### Open
+
+Materials and the mesh-to-texture selector, vertex colours, bits `0x40`/`0x100`
+on the wide strides, the unknown word at `+0x04` of the vertex descriptor, the 32
+unknown bytes at `+0x70` of a node, `NOF0`, `NZMO` motions, `NZMA` morphs, `.EV`
+object id names, `.AME` effects, the exact engine placement transform, and the
+MojoShader assumption.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
