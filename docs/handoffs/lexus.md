@@ -2582,3 +2582,61 @@ piece both static rendering and animation stand on.
 3. Damage, which needs the damage code read the way the spin dash was.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 36 — What actually stands between here and a Sonic on screen
+
+**2026-07-28 09:21 CEST (UTC+02:00)**
+
+Beat 35 resolved the node tree. The next question was which mesh belongs to which
+node, and the answer was already parsed and never checked: `NnMeshSet` carries a
+`NodeIndex` at `+0x10`.
+
+It holds up everywhere. **11,565 of 11,565 mesh sets across 3,546 models have a
+`NodeIndex` inside their own model's node array.** Just over half are 0, which is
+what the many rigid single-node props should look like.
+
+### And then it stops, for a reason worth stating
+
+I expected to draw Sonic this beat. I cannot, and the reason is specific rather
+than a shrug.
+
+His geometry is authored in a **centred model space** — raw positions span y -5.82
+to 5.82 — while his posed skeleton stands from **0 to 10.73**. Those are different
+spaces. The five nodes his meshes bind to, 104 through 108, all sit at the origin;
+one is exactly identity and two carry a **-16384 rotation about X**, which is a
+clean -90 degrees and the ordinary Y-up to Z-up conversion.
+
+`MatrixIndex` is **-1** on all eighteen of his mesh sets, and that is the tell:
+**palette skinning**. His vertices are weighted across several matrices rather
+than riding one node, so multiplying them by `world[NodeIndex]` would not pose
+him — it would double-transform him into a mess that looked like a bug in the node
+walk rather than a wrong approach.
+
+What is missing is the matrix palette `n_mtxpal` counts, and the blend indices and
+weights inside the vertex format. Neither is decoded.
+
+I could have shipped a posing function that runs, produces geometry, and is wrong.
+It would have looked like progress. **The honest state is that rigid models can be
+posed with what exists today and skinned ones cannot**, and the next beat has a
+clear target instead of a subtle bug.
+
+### Regression
+
+Whole-solution build · **140 tests** — green. No behaviour changed this beat; the
+work was verification and a bound on what is possible.
+
+### Progress
+
+**≈64%.** Unchanged, correctly — this beat bought certainty, not capability.
+
+### Next
+
+1. **Decode the matrix palette and the vertex blend weights.** That is the single
+   thing between this project and a character on screen, and it is now precisely
+   located rather than vaguely ahead.
+2. The Android head, once the SDK licence is accepted.
+3. Damage, which needs its code read the way the spin dash was.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
