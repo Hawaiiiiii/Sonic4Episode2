@@ -2411,3 +2411,55 @@ Whole-solution build · **124 tests** · Zone 1 driven by touch — green.
 3. A character model instead of a blue rectangle.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 33 — Using the eleven modes
+
+**2026-07-28 07:36 CEST (UTC+02:00)**
+
+Beat 29 established that the parameter table is three characters of eleven modes.
+Nothing used the modes until now.
+
+`Player.SetMode(character, mode)` swaps the tuning at runtime, which is what those
+rows are for — the same player runs on different numbers underwater, in a special
+stage, on the Mad Gear, or transformed. **Speed carries across the switch**, so
+becoming Super does not stop you, and a test pins that.
+
+`TryGoSuper` gates on the ring count and the engine calls it whenever rings are
+collected, so picking up the fiftieth ring in a real stage now transforms the
+player onto mode 1 — 15 top speed against 9, 7.98 jump against 5.65.
+
+**Metal Sonic falls out for free.** Character 2's Super row repeats its normal
+values, so asking it to transform changes nothing. That is the correct outcome
+arrived at by the data rather than by a special case, and there is a test saying
+so.
+
+### One number flagged, not claimed
+
+`RingsForSuper = 50` is **not recovered**. Fifty is the series-wide figure and is
+almost certainly right, but nothing in Episode II's binary has been read to
+confirm it. It is marked as a placeholder in the code, the same way
+`RollThreshold` was in beat 28. The distinction between "read from the binary" and
+"plausible and unverified" is the whole value of this project's evidence
+discipline, and it costs nothing to keep.
+
+### Regression
+
+1,614 archives · 5,727 NN containers · 2,853 textures · 651 texture banks · 1,843
+shaders · 8 CRI containers · 39 collision files · 23,474 angle cells · 714 object
+ids · 33 physics rows · whole-solution build · **131 tests** — green.
+
+### Progress
+
+**≈62%.** Phase 4 ~37%.
+
+### Next
+
+1. The Android head, once the SDK is installed — the only thing blocking it is a
+   licence acceptance the director has to give.
+2. Damage: ring loss, invincibility (`InvincibleFrames` = 180 is already
+   recovered), and knockback.
+3. A character model instead of a blue rectangle.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
