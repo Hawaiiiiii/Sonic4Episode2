@@ -1166,3 +1166,70 @@ bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects, the exact engine
 placement transform, MojoShader output quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 16 — Engine core: scheduler and scene machine
+
+**2026-07-27 20:11 CEST (UTC+02:00)**
+
+### Done
+
+The two subsystems everything else hangs off, in `Core/Engine`, written
+clean-room from reading Episode I for *behaviour* rather than copying it — plus
+**16 xunit tests, all passing**.
+
+**Merged AliceNN's two scheduler layers into one.** The `amTask`/`mtTask` split
+(one holds the list, the other adds pause levels and typed work) is an artefact
+of the original C, and there is no reason to carry that seam into a fresh
+implementation.
+
+### The three behaviours the tests exist for
+
+All three are easy to get subtly wrong and each is depended on somewhere:
+
+1. **Priority ordering**, with equal priorities keeping creation order. A new
+   task inserts before the first task of strictly greater priority.
+2. **Deferred deletion.** Delete marks the task and runs its destructor
+   immediately, but the unlink waits until every procedure has run. So a task can
+   delete itself or another mid-frame without corrupting the walk — and a task
+   killed earlier in the same frame is *skipped* rather than getting one last
+   run. Creation during a frame defers to the next one for the same reason.
+3. **The pause gate reads backwards from the obvious guess.** A task is *skipped*
+   when its own pause level is **≤** the system level, and the system level is
+   **-1** when nothing is paused. So a task at level 0 runs normally until you
+   pause to level 0. Tasks can also opt out of pausing entirely, which the
+   original expresses as a pause level nothing can reach.
+
+Scene transitions **defer by one step**, which is what lets a scene request its
+own exit from inside its own update without unwinding through code that is still
+executing. A scene with nothing in branch slot 1 is linear and arms slot 0
+immediately; a branching scene waits to be told which way to go.
+
+### Progress
+
+**≈35% overall.** Phase 1 ~85%, phase 2 ~90%, phase 3 ~40%.
+
+**Playable game still 0%.** A scheduler with nothing scheduled on it does not
+move that number.
+
+### Next
+
+1. **Object system** — `OBS_OBJECT_WORK` and its ten procedure slots, the fixed
+   per-frame order (view check, parent resolve, asset gate, `ppFunc`, `ppMove`,
+   `ppCol`, `ppRec`, `ppLast`). That completes phase 3's skeleton.
+2. **Boot the engine on real data**: scheduler running, scene machine in a
+   gameplay state, stage mounted, drawn through the existing viewer path.
+3. **Then a player**, which is the first thing that makes "playable" mean
+   anything at all.
+
+Audio (CRI ADX2) still closes phase 2 and is untouched.
+
+### Open
+
+Motion key payloads, CRI audio, the render-state block, vertex colours,
+wide-stride bits, the unknown vertex-descriptor word, the node's trailing 32
+bytes, `NZMA` morphs, `.EV` object id names, `.AME` effects, the exact engine
+placement transform, MojoShader output quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
