@@ -13,9 +13,10 @@ the **stage tile grids** (`.MP`/`.MD`), the **object placement tables**
 set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
 failures. The binary has been surveyed and scoped.
 
-**A desktop viewer now runs** (MonoGame window, stage assembled live from the
-archives), but there is no player, physics or game logic, so the **playable game
-is still at 0%**. Overall progress against the full goal is roughly **39%**, and the
+**A playable slice now runs**: you can run and jump on Zone 1 Act 1's real
+geometry, with collision from the stage's own `_ATTR_` layer. **The physics
+constants are placeholders**, chosen to feel plausible at this scale rather than
+recovered from the binary, and there are no objects, enemies or goal yet. Overall progress against the full goal is roughly **43%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -334,6 +335,27 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   them had a scene callback that referenced the system - only wiring it up did.
 - `Vector3` now comes from `System.Numerics` rather than a hand-rolled one, which
   collided with MonoGame's.
+
+- **PLAYABLE SLICE.** `CollisionMap` from the `_ATTR_B` layer, `Player` with
+  gravity, ground/wall collision and edge-triggered jumping, camera follow and
+  keyboard input. **47 tests passing.** Player spawns at (612, -880) on Zone 1
+  Act 1 and lands on real terrain; collision grid is 510x70 cells.
+- **Collision comes from `_ATTR_`, not the visual layer.** In Zone 1 Act 1 every
+  tile cell also carries an attribute, plus **1,285 attribute-only cells** -
+  invisible walls and ceilings. Using the visual layer would silently drop those.
+- **The physics constants are placeholders and are marked as such in the code.**
+  Acceleration, friction, gravity and jump velocity were chosen to feel right at
+  20 units/cell; Episode II's real values are in the binary's player code and
+  have not been reverse engineered. Anything that depends on Sonic feeling like
+  Sonic depends on replacing them.
+- Collision is **blocky by design**: a non-zero attribute is fully solid, which
+  is right for flat ground and walls and wrong on slopes. The shape data is in
+  the `.DF` files (64 bytes per cell, one height byte per pixel), undecoded.
+  `CollisionMap.GroundHeightAt` is the single place that changes when they are.
+- Horizontal and vertical motion are resolved **separately**, which is what stops
+  the player snagging on a wall while falling past it.
+- Controls: arrows or WASD to move, Space/Z/Up/W to jump, Tab toggles free
+  camera, PageUp/Down zoom, Escape quits.
 
 ## Repository
 
