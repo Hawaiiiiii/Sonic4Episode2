@@ -14,7 +14,7 @@ set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
 failures. The binary has been surveyed and scoped.
 
 **No engine or game code has been written yet — nothing here runs the game on any
-platform.** Overall progress against the full goal is roughly **22%**, and the
+platform.** Overall progress against the full goal is roughly **23%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -175,6 +175,14 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   transform rather than reproducing it; correct silhouette, not proven exact.
 - Rendering note: lambert shading is useless here because nearly every face
   points at the camera in a side-scroller. Colour by tile id instead.
+
+- **SHADERS ARE TRANSLATABLE** (`docs/FORMAT-SHADER.md`, `tools/shader.py`).
+  All **1,843 parse cleanly, 0 failures** — 922 `ps_3_0`, 921 `vs_3_0`, every one
+  carrying `CTAB`, 98,672 instructions across **26 distinct opcodes all from the
+  documented SM1-3 set**. `rep`/`endrep` balance exactly at 373 each, which is a
+  free self-check on the token walk. This is MojoShader's input format, so the
+  mobile shader path is off-the-shelf. Remaining risk is output quality and ES 2.0
+  fallbacks, not feasibility — a large downgrade from where the plan started.
 
 ## Repository
 
