@@ -1604,3 +1604,111 @@ files · 47 tests — **green**.
 3. `.DI` surface angles, which feed slope physics once the player uses them.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 22 — The object table falls out of the binary
+
+**2026-07-27 23:58 CEST (UTC+02:00)**
+
+### What the `.EV` numbers mean
+
+Beat 21 left "find the object id table" as the next job. It is at
+**`Sonic.exe:0x007031C8`** — 803 function pointers indexed *directly* by object
+id, 714 of them live.
+
+I did not trace code to find it. I scanned every data section for long runs of
+pointers into `.text`, which turned up exactly one table of that shape, and then
+asked the stage data whether it agreed: of the **472 distinct object ids used
+across every `.EV` file in the build, 469 land on a non-null slot**. That is not
+a coincidence you get twice.
+
+### Variants share a spawn function
+
+714 ids collapse to **382 functions**. Siblings are the same object with a
+different setting, and each handler works out which by subtracting its own base
+id — from `0x004A7580`:
+
+```asm
+movzx eax, word [edi + 2]      ; the object id, from the .EV record
+cmp   dx, ax                   ; edx = 0x295 = 661
+ja    skip
+cmp   ax, cx                   ; ecx = 0x29c = 668
+ja    skip
+sub   edx, 0x295
+mov   dword [esi + 0x3c4], edx ; variant 0..7
+```
+
+**This also confirms the `.EV` record layout from the engine's own code**, which
+until now rested only on "all 79 files parse": id at `+2`, flags at `+4`, and the
+flags word is a bitfield — the same handler pulls bits 4-5 and 6-7 out as two
+separate 2-bit fields.
+
+### Sizes, and a constant I had wrong
+
+Every handler builds through one constructor at `0x004834C0`, pushing instance
+size and scheduler priority. Reading those back gives a size for **668** ids, and
+**priority `0x1500`** — 270 of the 294 readable handlers pass exactly that. The
+port had a guessed `0x2000`; `GameEngine.PriorityObject` now carries the measured
+value.
+
+### Names — and being honest about them
+
+**116 ids resolve to a name**, 45 distinct: `WaterSlider`, `CandleStick`,
+`Propeller01`, `SandBranch03`, `MS_Homing`, `Spring`, `Switch`, `Spear`,
+`Boss3_01`. All recognisably Episode II, all in the zone you would expect.
+
+They are **not equally trustworthy and the catalogue says so**. Only 27 were read
+from the handler's own body; 89 came from a function it calls, where a shared
+helper can hand its string to an object it merely assists.
+`ObjectCatalog.Entry.Direct` marks which is which.
+
+Two things tried and rejected:
+
+- **Two call levels deep** reached 273 names, and attributed the task name
+  `GM_LOAD_BBM` to five unrelated high-traffic objects. Precision was worth more
+  than the count; the search stops at one level.
+- **Propagating names across families** gained exactly nothing — siblings share a
+  function, so they already share whatever it references.
+
+The three most-placed objects in the game (ids 715, 724, 716 — nearly 2,900
+placements between them) are still unnamed, because they load no named asset.
+Those need behaviour, not strings.
+
+### The trap in this beat
+
+Function bodies are scanned to the first `int3` run. `0xCC` also occurs inside
+ordinary immediates, so the naive scan truncated most functions to nothing and
+found names for **11%** of ids. Refusing to believe any body shorter than 512
+bytes took the same search to **38%** immediately.
+
+That is the third time on this project that a boundary heuristic quietly agreed
+with me while matching the wrong thing. Beat 20's lesson generalises: *when a
+check is cheap and its result is disappointing, suspect the check.*
+
+### Shipped
+
+`tools/objects.py` (the whole recovery, reproducible from the `.exe`),
+`ObjectCatalog.cs` (714 rows, generated), `docs/FORMAT-OBJECTS.md`, seven new
+tests. Placements now report as `identified/total` when a stage mounts.
+
+### Regression
+
+1,614 archives · 5,727 NN containers · 2,853 textures · 39 collision files ·
+714 object ids · **55 tests** — green.
+
+### Progress
+
+**≈50%.** Phase 1 ~95%, phase 2 ~95%, phase 3 ~86%, phase 4 ~12% (up from 5%:
+both of its blockers are now gone).
+
+### Next
+
+1. **Player physics constants from the binary.** Everything about feel is gated
+   here, and it is now the last big unknown standing between this and a stage
+   that plays like Episode II rather than like a physics demo.
+2. **Identify ids 715/724/716 by behaviour** — the most-placed objects in the
+   game, almost certainly rings and their kin.
+3. `.DI` surface angles, which feed slope physics once the player uses them.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
