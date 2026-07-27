@@ -14,7 +14,7 @@ set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
 failures. The binary has been surveyed and scoped.
 
 **No engine or game code has been written yet — nothing here runs the game on any
-platform.** Overall progress against the full goal is roughly **23%**, and the
+platform.** Overall progress against the full goal is roughly **24%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -183,6 +183,23 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   free self-check on the token walk. This is MojoShader's input format, so the
   mobile shader path is off-the-shelf. Remaining risk is output quality and ES 2.0
   fallbacks, not feasibility — a large downgrade from where the plan started.
+
+- **`NOF0` DECODED** - `u32 count`, `u32 reserved`, then `count` base-relative
+  byte offsets. **3,577 models, 0 failures, 134,372 entries.** Read out of the
+  loader at `Sonic.exe:0x006c6c33`: `offset >> 2` indexes u32s and the base is
+  added in place. **So the file layout IS the in-memory layout** - Episode II
+  relocates rather than re-parsing. `NOF0` doubles as a map of which words are
+  pointers, which is the tool that finally cracked materials open.
+- The same function independently confirms the chunk walk (compares `NZOB`,
+  `NEND`, `NZTL`) and the **20-byte texture entry** (loop steps by `0x14` at
+  `0x006c6cce`), and shows the engine uppercases texture names in place.
+- **Materials partially recovered** via the relocation map: `u32 flags`,
+  `u32 reserved`, pointer to a **colour block** at `+0x08` (count then RGBA
+  floats), pointer to a **render-state block** at `+0x0C` (leading int then
+  packed u16 pairs). Pointer `fType` `0x30000000` adds exactly 4 bytes over
+  `0x10000000`. **Texture selector hypothesis**: `Z1_G_HASIRA_B`'s materials 1
+  and 2 are identical except that leading int (16 vs 24) and their meshes use
+  different textures - unproven, needs the draw path.
 
 ## Repository
 
