@@ -14,7 +14,7 @@ set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
 failures. The binary has been surveyed and scoped.
 
 **No engine or game code has been written yet — nothing here runs the game on any
-platform.** Overall progress against the full goal is roughly **24%**, and the
+platform.** Overall progress against the full goal is roughly **25%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -200,6 +200,18 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   `0x10000000`. **Texture selector hypothesis**: `Z1_G_HASIRA_B`'s materials 1
   and 2 are identical except that leading int (16 vs 24) and their meshes use
   different textures - unproven, needs the draw path.
+
+- **MATERIALS DECODED AND THE TEXTURE CHAIN CLOSED.** The binding sits at
+  material `+0x18` -> texture map block `+0x04` = index into `NZTL`. **9,431 of
+  9,431 verified in range, 0 out of range**; 336 materials are untextured.
+  `Z1_G_HASIRA_B` - the model that defeated the earlier subobject approach with 3
+  materials against 2 textures - resolves correctly: material 1 to
+  `Z1_1_block_06_dif.dds`, material 2 to `Z1_1_block_21_dif.dds`.
+  Full chain: `mesh set -> i_material -> material -> +0x18 -> index -> NZTL -> .DDS`.
+  OBJ export now writes a matching `.mtl` with `map_Kd`.
+- This also explains the `fType` size correlation: `0x30000000` materials are 4
+  bytes larger than `0x10000000` ones precisely because that flag carries the
+  optional texture-map pointer.
 
 ## Repository
 
