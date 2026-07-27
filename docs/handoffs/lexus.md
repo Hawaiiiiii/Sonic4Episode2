@@ -572,3 +572,94 @@ node, `NOF0`, `NZMO` motions, `NZMA` morphs, `.EV` object id names, `.AME`
 effects, the exact engine placement transform, and MojoShader output quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 8 — The binary pays off: `NOF0` decoded, materials broken open
+
+**2026-07-27 17:02 CEST (UTC+02:00)**
+
+### Method change that worked
+
+Beat 7 halted materials after three data-driven approaches failed, with the
+recommendation to go at the binary instead. Did that. One rizin session on the NN
+object loader returned more than the previous three attempts combined.
+
+Found it by searching for the chunk magic as an instruction immediate — `NZOB` is
+`0x424F5A4E`, which encodes as the bytes `4E 5A 4F 42`. Two hits, both in the
+middleware region, both inside `fcn.006c6c00`.
+
+### `NOF0` decoded
+
+`u32 count`, `u32 reserved`, then `count` base-relative byte offsets. Straight
+from the loader at `0x006c6c33`:
+
+```asm
+mov ecx, dword [edi]            ; offset from the table
+shr ecx, 2                      ; /4, so it indexes u32s
+add dword [eax + ecx*4], eax    ; *(base + offset) += base
+```
+
+**3,577 models parse, 0 failures, 134,372 relocation entries**, all word-aligned
+and in range.
+
+**The consequence matters more than the format.** Episode II *relocates* rather
+than re-parsing: each listed word is patched from a base-relative offset into an
+absolute pointer, in place. So **the file layout is the in-memory struct layout**
+— which is precisely why every internal offset has been relative to `OfsData` all
+along. That was an empirical rule until now; it is now explained.
+
+### Three things confirmed from code rather than data
+
+The same function independently corroborates work done earlier by inference:
+
+- The chunk dispatch compares `NZOB`, `NEND` and `NZTL` and steps by
+  `[eax+4] + 8` — exactly the walk implemented in beat 2.
+- The texture-list loop at `0x006c6cce` steps by **`0x14`**, confirming the
+  20-byte texture entry from beat 5.
+- It uppercases texture names in place, which explains why Episode I's
+  decompilation calls `.ToUpper()` on them — a detail that had looked arbitrary.
+
+### Materials, finally moving
+
+`NOF0` doubles as **a map of which words in the file are pointers**. That is the
+tool the previous three attempts lacked, and it works where size measurement did
+not.
+
+Every material descriptor carries pointers at `+0x08` and `+0x0C`:
+
+| Offset | Field |
+|--------|-------|
+| `0x00` | flags (`0x1102`, `0x0000` observed) |
+| `0x04` | reserved, zero |
+| `0x08` | → colour block: count then RGBA floats |
+| `0x0C` | → render-state block: leading int then packed `u16` pairs |
+
+`Z1_G_HASIRA_B.ZNO`'s second material reads `(0.255, 0.494, 0.541, 1.000)`.
+
+**Texture selector hypothesis, explicitly unproven:** that model's materials 1
+and 2 have *identical* colour and render-state blocks except for the leading
+integer — 16 versus 24 — and their meshes use different textures. Suggestive, not
+established. Confirming it needs the draw path, not more data analysis.
+
+### Progress
+
+**≈24% overall, 0% runnable.** Phase 1 ~85%, phase 2 ~73%.
+
+### Next
+
+1. **Finish materials** by finding the draw-path consumer of the render-state
+   block in `Sonic.exe`. Same technique, now with a known struct to search for.
+   Unblocks textured stage rendering.
+2. **`NZMO` motions.** Animation is entirely untouched and 846 models are skinned.
+3. **MojoShader output quality** — feasibility is settled, quality is not.
+
+### Open
+
+The material texture selector, vertex colours, bits `0x40`/`0x100` on the wide
+strides, the unknown word at `+0x04` of the vertex descriptor, the 32 unknown
+bytes at `+0x70` of a node, `NZMO` motions, `NZMA` morphs, `.EV` object id names,
+`.AME` effects, the exact engine placement transform, and MojoShader output
+quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
