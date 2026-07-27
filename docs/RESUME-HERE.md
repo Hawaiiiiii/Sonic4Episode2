@@ -16,7 +16,7 @@ failures. The binary has been surveyed and scoped.
 **A playable slice now runs**: you can run and jump on Zone 1 Act 1's real
 geometry, with collision from the stage's own `_ATTR_` layer. **The physics
 constants are placeholders**, chosen to feel plausible at this scale rather than
-recovered from the binary, and there are no objects, enemies or goal yet. Overall progress against the full goal is roughly **43%**, and the
+recovered from the binary, and there are no objects, enemies or goal yet. Overall progress against the full goal is roughly **44%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -356,6 +356,20 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   the player snagging on a wall while falling past it.
 - Controls: arrows or WASD to move, Space/Z/Up/W to jump, Tab toggles free
   camera, PageUp/Down zoom, Escape quits.
+
+- **CRI AUDIO DECODED** (`docs/FORMAT-CRI.md`, `tools/cri.py`). All **8
+  containers parse, 0 failed**, exposing **949 cues**. Both `.CSB` and `.CPK` are
+  built from the @UTF table - big-endian, every offset relative to `0x08`.
+- **@UTF storage classes are 0x10 / 0x30 / 0x50**, not a dense 1/2/3. Guessing
+  the dense form misaligns the name offset and produces a table that parses
+  "successfully" with every column name empty. That empty-names symptom is the
+  tell.
+- A `.CSB` is a `TBLCSB` of six sub-tables: INFO, CUE, SYNTH (89 mixing columns),
+  SOUND_ELEMENT, ISAAC and VOICE_LIMIT_GROUP. Music is 48 kHz stereo with the
+  streaming flag set, linked to `.aax` names; cue names are plain
+  (`ep2_sng_title`, `ep2_sng_z1a1`).
+- Still open on audio: walking the CPK's TOC to individual files, and decoding
+  the ADX/HCA waveforms themselves.
 
 ## Repository
 
