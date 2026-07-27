@@ -16,7 +16,7 @@ failures. The binary has been surveyed and scoped.
 **A playable slice now runs**: you can run and jump on Zone 1 Act 1's real
 geometry, with collision from the stage's own `_ATTR_` layer. **The physics
 constants are placeholders**, chosen to feel plausible at this scale rather than
-recovered from the binary, and there are no objects, enemies or goal yet. Overall progress against the full goal is roughly **46%**, and the
+recovered from the binary, and there are no objects, enemies or goal yet. Overall progress against the full goal is roughly **48%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -381,10 +381,24 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   is approximating.
 - **A full cell is 32 units tall, not 63.** Measured over 8.4M height bytes: 0 and
   32 dominate, 1..31 carry the shaped ground, and only **0.02%** exceed 63.
-- **STILL OPEN and blocking use: how an `_ATTR_` cell id selects a record.** The
-  `count*2` region looked like an id-to-record index but is entirely zero, and
-  Zone 1's act uses ATTR ids 481..1533 against only 79 `.DF` records. The mapping
-  is not in the data; it needs the binary. Until then `CollisionMap` stays blocky.
+- **SOLVED: the `_ATTR_` id to record mapping.** The layout was **backwards** in
+  the first reading. Records come first at `+4`; the `chips*2` index table is
+  **last**. The file size works out either way, so only the binary settles it -
+  `Sonic.exe:0x00560349` computes the index address as `base + 4 + records*size`
+  via `shl ecx, 0xc`. Verified: all 1,535 index entries in range, and **all 256
+  attribute ids Zone 1 Act 1 uses resolve to a valid record**.
+- **The player now walks on real height fields**, not boxes. `CollisionShapes`
+  resolves attribute id -> record -> 64 column heights; `CollisionMap` samples the
+  column under the player and places the surface at
+  `cellBottom + height/32 * cellSize`.
+- The same routine also confirms the AMB header independently: it reads the entry
+  count from `[amb+0x10]`, exactly where `AmbArchive` reads `file_num`.
+- How to find things like this: the stage load list is a table of 20-byte records
+  `{path, buffer, reserved, loader, id}` in `.rdata` at a 240-byte stride per
+  stage. Searching for a path pointer (e.g. `G_ZONE1/MAP/ZONE1_ATTR.AMB` at
+  `0x0073b5c8`) lands in it, and the loader field points at the code that reads
+  that archive - `0x0048f290` for stage data, a 6-case switch whose case 3 is
+  `_ATTR`.
 - 55 further collision files in the `*_COL.AMB` gimmick archives have **no header
   at all** and need a separate path.
 
