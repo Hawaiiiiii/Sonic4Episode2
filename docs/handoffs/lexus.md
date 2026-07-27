@@ -2770,3 +2770,76 @@ No code changed. Whole-solution build · **140 tests** — green.
 3. Damage, which needs its code read the same way.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 39 — The shaders say how skinning works
+
+**2026-07-28 11:18 CEST (UTC+02:00)**
+
+Beat 38 ended with a dead lead and a recommendation to go at the matrix palette
+from the binary. I did, and the binary route stalled in a useful way: the NN chunk
+tags appear in exactly three places, and all three are load-time — a name lookup
+at `0x0062126B` and the container walker at `0x006C6C55`. **The palette is used at
+draw time, not load time**, so the loader was never going to show it.
+
+So I went at the **shaders** instead, which the project has been parsing for
+thirteen beats without ever asking them anything.
+
+### 126 shaders do palette skinning
+
+Walking all 1,843 for **relative addressing on a constant register** — the marker
+of palette skinning, and unambiguous — finds **126 vertex shaders that use it**.
+`...RDMRC00000020.VSH`, a `vs_3_0`, reads:
+
+```
+mul   r2, c75, v2            ; scale the index
+mova  a0, r2                 ; into the address register
+mul   r1, v1, c[a0.x + 3]    ; weight times a matrix row
+mad   r1, c[a0.x + 3], v1, r1
+dp4   r0, v0, r1             ; against the position
+```
+
+That gives the shape outright:
+
+- **`v0` position, `v1` blend weights, `v2` blend indices.**
+- A bone is **four constant registers**, `c[a0.x + 0..3]`.
+- The index is scaled by `c75` to turn a bone number into a register offset.
+- Constants run to **c142** in the skinning set, consistent with `n_mtxpal` being
+  99 on Sonic.
+
+### The question is now narrow
+
+The vertex carries weights and, by the stride arithmetic, nothing else — Sonic's
+48 bytes are exactly position 12, weights 16, normal 12, texture coordinates 8.
+Yet the shader reads indices from a **separate input register**. Either they are
+packed into those same 16 bytes beside the weights, or the declaration feeds `v2`
+from somewhere the stride does not account for.
+
+The **D3D9 vertex declaration** the engine builds per vertex list answers both at
+once — it names every element's offset, type and usage. That is the next thing to
+find, and it is a much smaller target than "the matrix palette".
+
+### What this beat is worth
+
+No code changed and progress does not move. But beat 38 knew the palette was
+missing and nothing else; this beat knows the register layout, the bone stride,
+which inputs carry what, and exactly which one structure would close it. That is
+the difference between a target and a direction.
+
+### Regression
+
+Whole-solution build · **140 tests** — green.
+
+### Progress
+
+**≈65%.** Unchanged.
+
+### Next
+
+1. **The D3D9 vertex declaration**, per vertex list, in the binary. Closes
+   skinning.
+2. The Android head, once the SDK licence is accepted.
+3. Damage, which needs its code read the way the spin dash was.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
