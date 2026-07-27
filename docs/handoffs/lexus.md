@@ -743,3 +743,82 @@ names, `.AME` effects, the exact engine placement transform, and MojoShader outp
 quality.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 10 — Textured stage rendering; the asset chain runs end to end
+
+**2026-07-27 18:35 CEST (UTC+02:00)**
+
+### Done
+
+**DDS decoder** (`tools/dds.py`), no third-party dependency: DXT1/3/5 block
+decompression plus mask-driven uncompressed formats. **2,853 of 2,853 textures
+decode, 0 failed** — DXT1 1273, DXT5 832, DXT3 662, RAW32 78, RAW16 5, RAW8 3.
+
+Verified the only way that counts for a texture decoder — by eye.
+`ENE_HOPPER_DIF` comes out a recognisable green badnik atlas with silver eye
+housings and orange accents; `Z1_1_BLOCK_03_DIF` is sandstone brickwork, which is
+what a castle zone should be made of. Correct colours, no channel swap, no block
+noise.
+
+**Textured stage rendering.** A 1,851-tile region of Zone 1 Act 1 renders with
+**240,041 of 240,041 textured triangles resolved** — every single one found its
+texture. The output is unmistakably Sylvania Castle: brickwork tiling across the
+terrain, the blue water surface, green foliage on the ledges, a staircase to the
+right.
+
+### The chain, finally whole
+
+```
+AMB -> grid -> tile id -> model -> mesh set -> material ->
+texture index -> NZTL -> DDS -> pixels -> UV-mapped geometry
+```
+
+Every link was decoded separately across beats 1 to 9. This is the first time
+they have all run together, and they do.
+
+Barycentric interpolation without perspective correction is exact here rather
+than approximate, because the projection is orthographic.
+
+### Two tail fixes worth recording
+
+**The uncompressed path was too narrow.** It handled 24- and 32-bit only, but the
+build also ships L8 luminance and X1R5G5B5. Rewrote it to drive the unpack from
+the channel masks rather than special-casing depths, which covers those and
+anything else with sane masks.
+
+**Six `NULL.DDS` files were being reported as failures** for decoding to fully
+transparent. They are 8x8 blank placeholders — the data was right and my sanity
+check was wrong. Removed it. Second time this project that an over-strict
+validator has flagged correct data; worth watching for.
+
+### Progress
+
+**≈27% overall, 0% runnable.** Phase 1 ~85%, phase 2 ~88%.
+
+**Phase 2's gate is met bar animation.** Stages assemble from the original
+archives and render with their real textures. Only `NZMO` motion playback remains.
+
+### Next
+
+The asset work is nearly done, and the next real milestone is a different kind of
+work entirely:
+
+1. **`NZMO` motions** — the last untouched major format. Closes phase 2.
+2. **Phase 3: start the engine.** Nothing has been written toward an actual
+   engine, and **that is the only thing that moves the runnable figure off zero**.
+   Needs a .NET SDK installed first, which this machine does not have.
+
+Worth saying plainly: the asset pipeline being ~90% done does not mean the project
+is. Phases 3 and 4 hold 55% of the weight and have not started.
+
+### Open
+
+The render-state block's packed `u16` pairs, vertex colours, bits `0x40`/`0x100`
+on the wide strides, the unknown word at `+0x04` of the vertex descriptor, the 32
+unknown bytes at `+0x70` of a node, `NZMO` motions, `NZMA` morphs, `.EV` object id
+names, `.AME` effects, the exact engine placement transform, and MojoShader output
+quality.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
