@@ -2463,3 +2463,64 @@ ids · 33 physics rows · whole-solution build · **131 tests** — green.
 3. A character model instead of a blue rectangle.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 34 — Rings are rings now
+
+**2026-07-28 08:11 CEST (UTC+02:00)**
+
+The player models were sitting in `G_COM/PLY` the whole time: `SON_MDL`,
+`TLS_MDL`, `SSON_MDL` and `MSN_MDL`, with motions and textures beside each. That
+`MSN` is **Metal Sonic confirmed a third independent way** — beat 29 inferred it
+from character 2 having no Super row, beat 31 read it from the `MS_Dash1` string,
+and the asset layout says the same.
+
+Rings had their own directory too, `G_COM/RING`, and that is what this beat uses.
+
+### What it draws
+
+`RING.ZNO` is a **single-node model with one vertex list**, which means it goes
+through the same `TileMesh` path the stage tiles use with no skinning involved.
+The viewer instances it once per ring still on the field and rebuilds only when
+the count changes — a handful of times a second at most, which beats tracking
+per-ring index ranges for something this cheap.
+
+Verified off the real files: 200 vertices and 400 triangles, its texture reference
+resolving to `cmn_metal_ms_ringsky_ref.dds`, which is exactly the one file in
+`RING_TEX.AMB`. Zone 1 Act 1's 325 rings come to 65,000 vertices and 130,000
+triangles.
+
+**A free cross-check.** The model measures **5.84 world units** across and the
+pickup box computed from the collision scale is **5.00**. A visual ring slightly
+larger than the box you collect it with is exactly right, and getting those two
+numbers within 17% of each other by two completely separate routes — one from the
+`.DF` height field's 64-column geometry, the other from authored model vertices —
+is a good sign the whole scale chain holds.
+
+### Sonic's model is not wired, on purpose
+
+`SON_MODEL.ZNO` has **109 nodes and 16 vertex lists**. It is skinned, so drawing
+it means evaluating the node hierarchy first, and animating it means binding
+`SON_MTN.AMB` on top of that. Neither is hard, but both are a real piece of work
+rather than something to bolt on at the end of a long session. The player is still
+a blue rectangle and honestly labelled as one.
+
+### Regression
+
+Whole-solution build · **131 tests** — green.
+
+### Progress
+
+**≈63%.** Phase 3 ~94%.
+
+### Next
+
+1. Sonic's model: evaluate the 109-node hierarchy, draw the bind pose, then bind
+   `SON_MTN` motions.
+2. The Android head, once the SDK licence is accepted.
+3. Damage: ring loss, invincibility, knockback. Episode I's knockback constants
+   do not appear in Episode II even as adjacent pairs, so this needs the damage
+   code read the way the spin dash was.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
