@@ -1526,3 +1526,81 @@ collision record mapping and the object id names.
 3. **Recover the player physics constants.** Everything about feel is gated here.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 21 — The binary settles the collision addressing; real slopes
+
+**2026-07-27 23:15 CEST (UTC+02:00)**
+
+### The blocker is gone
+
+Beat 20 ended with the `_ATTR_` id to collision record mapping declared "not in
+the data, needs the binary." It did, and four instructions settled it.
+
+**My layout was backwards.** I had the index table first and the records after.
+That put the index where record data actually lives, which is why it read as
+3,070 bytes of zeros. The file-size arithmetic works out **either way round**, so
+no amount of staring at the data could distinguish them — and I had already spent
+three attempts trying.
+
+`Sonic.exe:0x00560349`:
+
+```asm
+movzx ecx, word [eax + 2]     ; second header word = record count
+shl   ecx, 0xc                ; times 4096, the .DF record size
+lea   ebp, [eax + 4]          ; region A = records, at +4
+lea   eax, [ecx + eax + 4]    ; region B = index, after them
+```
+
+Records first, index last. The same routine does `shl 6` (×64) for `.DI`/`.AT`.
+
+**Verified**: all 1,535 index entries in range, and **all 256 attribute ids Zone 1
+Act 1 uses resolve to a valid record**.
+
+The player now walks on **real height fields** rather than boxes.
+`CollisionShapes` resolves id → record → 64 column heights; `CollisionMap`
+samples the column under the player and places the surface at
+`cellBottom + height/32 × cellSize`.
+
+### How to find things like this
+
+Worth recording as a technique, because it will work again:
+
+The **stage load list** is a table of 20-byte records —
+`{path, buffer, reserved, loader, id}` — in `.rdata` at a **240-byte stride per
+stage**. Searching for a path pointer (`G_ZONE1/MAP/ZONE1_ATTR.AMB` lives at
+`0x0073b5c8`) lands inside it, and the *loader* field points straight at the code
+that reads that archive: `0x0048f290`, a six-case switch on archive index whose
+case 3 is `_ATTR` and which stashes the three collision files in a global array at
+`0x008a1e7c`.
+
+A free confirmation fell out: that loader reads the entry count from
+`[amb+0x10]` — exactly where `AmbArchive` reads `file_num`. The AMB header
+confirmed from code, having previously only been confirmed by 1,614 files parsing.
+
+### Object ids — attempted, not solved
+
+Followed `GM_EVT_MGR` to its task creation at `0x0053c83e` and its procedure at
+`0x0053d3d0`. The procedure is a thin dispatcher that calls a per-instance
+function pointer, so the id-to-spawn mapping is another hop out. Not chased
+further this beat.
+
+### Full regression
+
+1,614 archives · 651 texture banks · 5,727 NN containers · 3,546 models ·
+1,481 motions · 2,853 textures · 1,843 shaders · 8 CRI containers · 39 collision
+files · 47 tests — **green**.
+
+### Progress
+
+**≈48%.** Phase 1 ~95%, phase 2 ~95%, phase 3 ~85%, phase 4 ~5%.
+
+### Next
+
+1. **Object id names**, via the same technique — find the table the event
+   manager's per-instance pointers come from.
+2. **Player physics constants** from the binary.
+3. `.DI` surface angles, which feed slope physics once the player uses them.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
