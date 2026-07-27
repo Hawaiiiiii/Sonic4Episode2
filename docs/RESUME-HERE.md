@@ -13,8 +13,9 @@ the **stage tile grids** (`.MP`/`.MD`), the **object placement tables**
 set data** — 2.8M vertices and 2.5M triangles out of 3,546 models with zero
 failures. The binary has been surveyed and scoped.
 
-**No engine or game code has been written yet — nothing here runs the game on any
-platform.** Overall progress against the full goal is roughly **30%**, and the
+**A desktop viewer now runs** (MonoGame window, stage assembled live from the
+archives), but there is no player, physics or game logic, so the **playable game
+is still at 0%**. Overall progress against the full goal is roughly **32%**, and the
 runnable figure is **0%**. See the weighted table in `plans/EXECPLAN.md`.
 
 ## Paths
@@ -273,6 +274,16 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   mounting costs one read and nested archives cost nothing. net8.0 rather than
   net9.0 because MonoGame's current release targets it and the mobile heads will
   be `net8.0-android` / `net8.0-ios`.
+- **DESKTOP HEAD RUNS.** `Sonic4Episode2.Desktop` (MonoGame 3.8.5 DesktopGL)
+  opens a window and renders Zone 1 Act 1 assembled from the original archives:
+  **17,526 tiles, 3,733,522 vertices, 1,593,407 triangles** - identical to the
+  Python `stageview.py` numbers. Arrow keys pan, PageUp/Down zoom, Escape quits.
+  Verified running: process present with the window title set.
+- DDS decoder ported too; C# and Python agree on all 2,853 textures and every
+  format count (DXT1 1273, DXT5 832, DXT3 662, RAW32 78, RAW16 5, RAW8 3).
+  **The whole asset layer now exists twice and agrees.**
+- **Run the viewer:**
+  `dotnet run --project Sonic4Episode2/src/Sonic4Episode2.Desktop -- . G_ZONE1/MAP/ZONE11_MAP.AMB`
 - **Build:** `dotnet build Sonic4Episode2/src` then
   `dotnet run --project Sonic4Episode2/src/Sonic4Episode2.Cli -- verify .`
 
