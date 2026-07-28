@@ -3185,3 +3185,61 @@ Whole solution · **162 tests** — green.
 3. Object behaviours for the resolved set: a spring that springs.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 46 — The asset manifest, and a scan that could not work
+
+**2026-07-28 05:58 CEST (UTC+02:00)**
+
+Trying to confirm the object renames (`SCONCE` = `CandleStick`?) from the spawn
+code, I found the engine's **asset manifest**: a global table pairing each numeric
+asset id with the archive it loads, 20-byte records `{path, buffer, 0, loader,
+id}`. `tools/assets.py` pulls all **390** of them.
+
+It is the load-time twin of the spawn table — that says which code an id runs,
+this says which archive an id loads — and it confirms Metal Sonic a fourth way:
+asset id 2 is `MSN_MTN.AMB`, his motions.
+
+### The part that failed
+
+The plan was to join the two tables: walk each handler for the asset ids it
+references, read the path off the manifest, done. It does not work.
+
+Asset ids are small integers and **small integers are what x86 code is made of**.
+`WATER_MDL` is id 2176 = `0x880` — a completely ordinary offset — so scanning for
+that immediate "finds" the water model in 20 unrelated handlers. Every handler I
+checked resolved to `WATER`, which is how I knew the method was noise rather than
+signal.
+
+Sixth time this project a value common enough to be noise has produced a
+confident-looking false match: the `0xCC` boundary (22), the denormal weights
+(40), and now asset-id immediates. The tell is always the same — the result is
+*too* clean, the same answer everywhere.
+
+Connecting a handler to its assets needs the load **traced**, not scanned: the id
+has to reach the loader through a data path, not just appear as a constant. That
+is real disassembly and it is not today's best use of time — the zone-and-letters
+resolver already covers the objects that can be drawn.
+
+### Salvaged
+
+The manifest itself is solid and reproducible, so it shipped as a tool even though
+the thing I went looking for did not pan out. A negative result with a clean
+artifact attached is a good day.
+
+### Regression
+
+Whole solution · **162 tests** — green. No code changed; a tool and a doc.
+
+### Progress
+
+**≈68%.** Unchanged.
+
+### Next
+
+1. The matrix palette, fresh eyes.
+2. Object behaviours for the resolved set.
+3. Trace one handler's asset load properly, as the template for the rest.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
