@@ -5,16 +5,20 @@ working session. If chat history is gone, start from this file.
 
 ## Where things stand
 
-**Overall ≈70%** — *decoding* progress. Rendering fidelity is separately ~35%;
-phases 1-2 measure data out of files, not pixels on screen. Phase 1 ~95%, phase 2 ~99%, phase 3 ~96%, phase 4 ~42%,
-phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`. The runnable game is still
-far from complete, but the slice that runs is real.
+**Overall ≈70% *decoding*, ~46% *rendering fidelity*** — two separate numbers, and
+keep them separate. Decoding measures data out of the files (phases 1-2 are near
+done); rendering fidelity measures pixels matching the original (phase 3's visible
+result), and it is lower because the renderer uses a stock unlit effect and the
+game's own shaders are parsed but not executed. Phase 1 ~95%, phase 2 ~99%, phase
+3 ~96%, phase 4 ~45%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
+**193 tests, all green. 93 commits.** Last session ended at beat 55.
 
-**Assets.** Decoded and verified against the whole build: the **AMB** container,
-the **stage tile grids** (`.MP`/`.MD`), the **placement tables** (`.EV`/`.DC`/`.RG`),
-the **texture banks** (`.TXB`), the **NN container**, the **NZOB object header**,
-geometry, **node hierarchies**, **skinning weights**, **motion keyframes**, **collision height fields
-and surface angles**, **DDS**, **D3D9 shader bytecode** and **CRI containers**.
+**Assets — decoded and verified against the whole build:** the **AMB** container,
+**stage tile grids** (`.MP`/`.MD`), **placement tables** (`.EV`/`.DC`/`.RG`),
+**texture banks** (`.TXB`), the **NN container**, **NZOB object header**, geometry,
+**node hierarchies**, **skinning weights + blend indices**, **motion keyframes**,
+**material blend mode**, **collision height fields and surface angles**, **DDS**,
+**D3D9 shader bytecode** and **CRI containers**.
 
 **Recovered from `Sonic.exe`, not guessed:**
 
@@ -25,34 +29,51 @@ and surface angles**, **DDS**, **D3D9 shader bytecode** and **CRI containers**.
 | Player parameter table | `0x00710520` | 3 characters x 11 modes |
 | Spin dash launch | `0x00513005` | `8.0 + charge * 0.5` |
 | `.EV` record layout | `0x0053D541` | confirms id at +2, flags at +4 |
+| Asset manifest | 20-byte records | 390 asset ids to archive paths, `tools/assets.py` |
 
-**What plays.** Zone 1 Act 1 mounts from the original archives and you can run,
-jump, roll and spin dash on its real geometry, following per-column height fields
-and the stage's own surface angles. Rings load from `.RG`, draw as the game's own
-model and can be collected; fifty of them transforms the player onto the Super
-row. Every object id in Zones 1-4 Act 1 resolves against the catalogue. **Objects
-are not spawned yet** and there are no enemies, damage or goal.
+**What plays.** An act mounts from the original archives and Sonic runs, jumps,
+**rolls, spin-dashes**, following per-column height fields and stored surface
+angles. **Rings** load, draw as the game's model, collect, and trigger Super at
+50. **Springs** launch, **dash panels** boost. The player **spawns at the act's
+real start marker (id 443)** and **crossing the goal panel (id 520) clears the
+act** — Zone 1 Act 1 is playable start to finish. Placed **gimmicks render and
+animate** (rigid models only). The **sky** draws from the `MAPFAR` archive.
+**Still missing:** damage/enemies/bosses, most of the 382 object behaviours, and
+skinned characters (the player is a blue rectangle).
 
-**Phones.** `Sonic4Episode2.Android` **builds a signed APK** (18 MB Release). It
-links the desktop renderer directly rather than duplicating it, and supplies an
-`AndroidContent` over shared storage plus a `TouchInput` feeding `VirtualPad`.
-**Not yet run on a device.** The SDK lives at `C:/Android/sdk` with a JDK at
-`C:/Android/jdk`; set `JAVA_TOOL_OPTIONS=-Xmx256m` or the JVM will not start on
-this machine. iOS needs a Mac. See `docs/MOBILE.md`.
+**Behaviour constants that are Episode I's, flagged not-recovered:** spring
+impulse 7.5, dash-panel boost 13.5, roll threshold 0.5, Super at 50 rings. Each is
+marked in code; Episode II's own values are not yet traced. The physics *table* is
+recovered; these individual gimmick numbers are not.
 
-**Build and test with `dotnet build` on the whole solution, not just
-`dotnet test`** — the test project does not reference the Desktop head, so a break
-there goes unnoticed. 140 tests.
+**Phones.** `Sonic4Episode2.Android` **builds a signed APK** (18 MB Release),
+linking the desktop renderer directly, with `AndroidContent` over shared storage
+and `TouchInput` feeding `VirtualPad`. **Not yet run on a device.** SDK at
+`C:/Android/sdk`, JDK at `C:/Android/jdk`; **always `export JAVA_TOOL_OPTIONS=-Xmx256m`**
+or the JVM will not start on this machine (small paging file). iOS needs a Mac.
+
+**Build the whole solution, not just `dotnet test`** — the test project does not
+reference the Desktop head. Full Android build needs the SDK flags:
+`dotnet build src -p:AndroidSdkDirectory=C:/Android/sdk -p:JavaSdkDirectory=C:/Android/jdk`.
 
 ## The next three things
 
-1. **The matrix palette.** Weights and blend indices are both decoded now; the
-   indices are palette-relative and never exceed 15, so what remains is the
-   ≤16-entry table mapping them to nodes. See beats 38-40.
-2. **The Android head**, once the SDK licence is accepted.
-3. **Damage**: ring loss, invincibility, knockback. Episode I's constants do not
-   appear in Episode II, so this needs the damage code read the way the spin dash
-   was.
+1. **The matrix palette** — the one thing gating skinned characters (a real Sonic
+   instead of a blue rectangle). Weights and blend indices are decoded; the
+   indices are palette-relative, never above 15, so what remains is the ≤16-entry
+   table mapping them to nodes. **Three attempts documented as dead ends** in beats
+   36/38/41: mesh-set `+0x24` is a sequential ordinal, the sub-object trailing
+   dwords don't fit, no static vertex declarations exist. Beat 39: the shaders say
+   `v0` position, `v1` weights, `v2` `UBYTE4` index, 4 constant registers per bone.
+   Next attempt: the runtime vertex-declaration builder, or the draw path that
+   uploads the palette to `SetVertexShaderConstantF`.
+2. **More object behaviours** — the bulk of the remaining 30%. 382 handlers, one
+   at a time. Pattern established by springs/dash panels: read Episode II's handler
+   first, borrow Episode I's shape only when Episode II's own value isn't traceable,
+   and flag it. Item boxes (`ITEM` in `G_COM/GMK`) and damage are good next targets.
+3. **The shader pipeline** — largest rendering-fidelity gap, but a fresh-session
+   project: MonoGame runs MGFX not GLSL, so it is not a bounded change. Groundwork
+   in beat 55: 921 vs_3_0 + 922 ps_3_0, opcode census, 126 palette-skinning shaders.
 
 ## Paths
 
@@ -467,22 +488,26 @@ Two things to settle while doing it:
 
 1. **Vertex attributes beyond position** — the exporter writes positions only.
    Texture coordinates are at a known stride and are needed for a textured view.
-2. **Materials**, to know which texture bank slot each mesh set uses. Expect a
-   different size from Episode I's `NNS_MATERIAL_GLES11_DESC`, per the mesh set
-   precedent.
+2. **Materials**, to know which texture bank slot each mesh set uses.
 
-Scale note worth confirming: the floor tile is a 20x20 unit quad and stage cells
-were inferred at 64px, so the grid-to-world scale needs pinning down before
-instancing.
+> **Note (kept for provenance):** everything in the two paragraphs above is now
+> **done** — materials, geometry, texture coordinates, the 20-unit grid scale
+> (pinned by measurement, `CellSize = 20`), object id-to-name recovery, and the
+> shader census. This section is early-session narrative left in place as a record
+> of how the project started. **For current state and next steps, read the top of
+> this file, then the tail of `docs/handoffs/lexus.md`** (append-only, newest beat
+> at the bottom — the last was beat 55). The Episode Metal content
+> (`G_EP1ZONE1-4`) remains a useful calibration set because Episode I's
+> decompilation independently establishes what those stages contain.
 
-After that, in rough order:
+## For the next session, in one paragraph
 
-1. **`.EV` object ids to names** — needs disassembly with rizin, since the ~298
-   names are immediates inside each object's code rather than a table.
-2. **MojoShader spike** — take one extracted `ps_3_0` shader and confirm it
-   yields usable GLSL ES. The whole mobile target rests on this assumption.
-3. **`.AME` effects** and the remaining minor formats.
-
-The Episode Metal content (`G_EP1ZONE1-4`) remains the best calibration set for
-any decoder, since Episode I's decompilation independently establishes what those
-stages contain.
+The reverse engineering is largely done; the remaining work is *using* what is
+decoded. Read the top of this file for the three next tasks. The single highest
+impact is the **matrix palette** (unblocks a real character model). The largest
+*volume* of work is **object behaviours** (382 handlers, one at a time — springs
+and dash panels are the template). Everything is committed and pushed to the
+remote; `git log --oneline | head` shows the last beats. Run
+`export JAVA_TOOL_OPTIONS=-Xmx256m` before any Android build. Verify with
+`dotnet test src` (193 tests) and the Python tool sweep (`amb.py`, `nn.py`,
+`collision.py`, `objects.py`, `physics.py`, `assets.py` — each has a `verify`).
