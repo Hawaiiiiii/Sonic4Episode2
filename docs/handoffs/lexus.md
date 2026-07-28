@@ -3092,3 +3092,55 @@ Whole solution including Android · **153 tests** — green.
 3. The matrix palette, with fresh eyes.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 44 — Closing abbreviations without writing down a guess
+
+**2026-07-28 04:48 CEST (UTC+02:00)**
+
+Beat 43 left 37 object names unresolved and explicitly refused to write an alias
+table. This beat closes some of them properly, with two independent signals that
+have to agree.
+
+**Zone.** The gimmick archives are zone-scoped. `AVLNCH` ships only in `G_ZONE2`,
+and `Avalanche02`'s 71 placements are all in `G_ZONE2`. `SAND_TANK` ships only in
+`G_ZONE3`, where `SandTrank01` is placed.
+
+**Letters.** The stem's letters appear in the name **in order** — `A-V-L-N-C-H`
+inside `AVALANCHE`, `SANDTANK` inside `SANDTRANK`.
+
+The ordering requirement is the whole point. **`SCONCE` really is `CandleStick`'s
+archive, and the rule rejects it** — correctly, because nothing about those two
+words justifies the link and a rule loose enough to accept it accepts anything.
+There is a test asserting that rejection.
+
+### Two guards the first version needed
+
+The first cut resolved `WaterSlider` to `WATER`, which is a real archive and is
+the water *surface*. An abbreviation drops letters, it does not drop half the
+word, so a stem must now keep **60% of the name's letters** — which keeps
+`AVLNCH` at 67% and `SAND_TANK` at 89% and drops `WATER` at 45%.
+
+And when **two** candidates qualify, nothing resolves. Ambiguity is a reason to
+pick neither.
+
+Resolution went 8 → 12 → **11 of 45** across those two corrections, which is the
+right direction: the number went *down* when I tightened it, and the one it lost
+was wrong.
+
+### Regression
+
+Whole solution including Android · **162 tests** — green.
+
+### Progress
+
+**≈68%.** Unchanged; this sharpened existing data rather than adding capability.
+
+### Next
+
+1. Draw the objects that resolve, at their placements.
+2. The matrix palette, with fresh eyes.
+3. The renames — `SCONCE`, `NEEDLE` — need something other than their letters.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
