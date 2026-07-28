@@ -86,6 +86,45 @@ dash 13.5, damage knockback, roll threshold, 50-ring Super) can now be **read
 from Episode II's own code** by disassembling the named function. Replace the
 flags with recovered values as each is confirmed.
 
+## ⭐ THE RETAIL BUILD IS HERE — and Beta 8 is almost exactly it
+
+The **Steam release** (App ID **203650**, built 2012-06-07) is downloaded to
+`C:\Users\DavidErikGarciaArena\Downloads\Sonic 4 - Episode 2 (Release)` (1.19 GB).
+Beta 8's `Sonic.exe` is dated 2012-04-17 — **seven weeks earlier**.
+
+**The question "are we reverse-engineering a beta?" is now answered, and the
+answer is very good: essentially no.** Hash comparison of all 800 game-data
+archives across every `G_*` directory:
+
+| | |
+|---|---|
+| Byte-identical | **796 / 800** |
+| Different | **4** |
+
+The four that differ are `G_ZONE2/MAP/ZONE2A_ATTR.AMB`, `ZONE2B_ATTR.AMB`,
+`ZONE2C_ATTR.AMB` — **Zone 2's collision attribute layers** — and
+`G_COM/CPIT/CPIT_MAIN.AMB`. Everything else — every model, texture, motion, tile
+grid, placement table and collision layer in Zones 1, 3, 4, F, the special stages
+and all the Episode Metal content — is **bit-for-bit the shipped game**. All prior
+reverse engineering stands as release-accurate.
+
+Outside `G_*`, these also differ (menus and shell, not level data):
+`NNSTDSHADER/SHADER.AMB` (+52 KB in release — **worth a look, shaders are our
+biggest rendering gap**), `DEMO/MENU_CMN/*`, `DEMO/MULTIPLAY`, `DEMO/WORLDMAP*`,
+`MSG/ANC/MSG_ANC_TRIAL01_*` (beta trial text), `Launcher.exe`, `steam_api.dll`.
+
+**Action item:** re-verify Zone 2 against the release `*_ATTR.AMB` files before
+trusting any Zone 2 collision work. Everything else needs no re-targeting.
+
+### The release executable
+
+Retail `Sonic.exe` is **SteamStub-wrapped** (a `.bind` section with the entry
+point relocated into it) — which is why Beta 8, which has no `.bind`, has been
+freely disassemblable all along. An unwrapped copy for static analysis only lives
+at `Downloads\unwrap\Sonic.exe.unpacked.exe` (4,301,168 bytes, against Beta 8's
+4,302,848 — nearly the same size). Original untouched. Treat it like every other
+oracle: gitignored, read-only, never a source.
+
 ## Where things stand
 
 **Overall ≈78% *decoding*, ~52% *rendering fidelity*** — two separate numbers, and
