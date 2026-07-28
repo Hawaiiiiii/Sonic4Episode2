@@ -3591,3 +3591,42 @@ fraction of a screen).
 3. The matrix palette, fresh session.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+
+---
+
+## Beat 54 — The sky, anchored properly
+
+**2026-07-28 11:23 CEST (UTC+02:00)**
+
+Beat 53's sky filled the void but sat wrong — the scenery band floated mid-screen
+and the pieces did not relate. The cause was `TileMesh.From` re-centring each
+model on its own bounding box, which throws away the very offset that says a cloud
+sits above the ground. The background models are authored as one scene around a
+shared origin, and that shared layout lives in each model's centre.
+
+Re-adding each model's centre offset — relative to the group's average — puts them
+back in their authored stack: sky highest, distant scenery band, then the
+atmospheric gradient with its gold sun glow. The whole group is camera-locked with
+a parallax drift (0.85 horizontal, 0.15 vertical) and anchored so its lower edge
+meets the top of the level.
+
+Zone 1 now reads as a proper side-scroller sky — layered clouds, a treeline
+horizon, and the sun's glow, all drifting behind the castle. Still tunable (the
+horizon band could sit a touch lower) but coherent rather than scattered.
+
+### Regression
+
+Whole solution · **191 tests** — green.
+
+### Progress
+
+**≈70% decoding · ~44% rendering fidelity.**
+
+### Next
+
+1. The game's shader pipeline — the largest remaining rendering gap.
+2. Item boxes and checkpoint id 719.
+3. The matrix palette, fresh session.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
