@@ -3630,3 +3630,53 @@ Whole solution · **191 tests** — green.
 3. The matrix palette, fresh session.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 55 — Additive blend, from the material's own render state
+
+**2026-07-28 12:04 CEST (UTC+02:00)**
+
+The shader pipeline is the biggest rendering gap, but a full SM3.0-to-GLSL
+translator is a fresh-session job — and MonoGame cannot consume raw GLSL anyway,
+it needs its own effect pipeline, so "run the game's shaders" is genuinely hard.
+Rather than start-and-abandon that, I took the bounded win beside it.
+
+A material's `StateOffset` points at a **16-word render-state block**, and words 2
+and 3 are the **D3D9 source and destination blend factors**. Across 3,870 models
+they split two ways: `SRCALPHA / INVSRCALPHA` (5,6) is ordinary transparency, and
+**`SRCALPHA / ONE` (5,2) is additive** — the glow blend. **2,761 materials are
+additive** and were all being drawn as flat alpha.
+
+`NnMaterial.Blend` decodes it, `TileMesh` carries it per triangle, and the batch
+groups additive triangles under a `+`-prefixed key so the renderer switches to a
+`SRCALPHA / ONE` blend state for them — not MonoGame's `BlendState.Additive`,
+which is `ONE / ONE` and blows out anything not pre-multiplied.
+
+Verified against real data: `Z1_GODRAY` decodes additive where `Z1_SKY` decodes
+alpha. The visible effect is subtle in Zone 1's opaque castle stone and will be
+dramatic in the effect-heavy zones — Mad Gear's machinery, water shine, sparks.
+
+### On the shader pipeline itself
+
+Recorded for the fresh session it needs: 921 vertex and 922 pixel shaders,
+`vs_3_0`/`ps_3_0`, dominated by `mad`/`mul`/`texld`/`dp3`/`nrm`. 126 vertex
+shaders do palette skinning (beat 39). A translator is real work, and the harder
+half is that MonoGame runs MGFX, not GLSL, so the shaders would need routing
+through its content pipeline. Not a scan, not a bounded change — a project.
+
+### Regression
+
+Whole solution including Android · **193 tests** · 5,727 NN containers — green.
+
+### Progress
+
+**≈70% decoding · ~46% rendering fidelity.**
+
+### Next
+
+1. The shader pipeline, fresh session.
+2. The matrix palette, fresh session.
+3. More object behaviours.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
