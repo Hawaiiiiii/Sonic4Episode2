@@ -5,7 +5,8 @@ working session. If chat history is gone, start from this file.
 
 ## Where things stand
 
-**Overall ≈70%.** Phase 1 ~95%, phase 2 ~99%, phase 3 ~96%, phase 4 ~42%,
+**Overall ≈70%** — *decoding* progress. Rendering fidelity is separately ~35%;
+phases 1-2 measure data out of files, not pixels on screen. Phase 1 ~95%, phase 2 ~99%, phase 3 ~96%, phase 4 ~42%,
 phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`. The runnable game is still
 far from complete, but the slice that runs is real.
 

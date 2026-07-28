@@ -3489,3 +3489,60 @@ Whole solution including Android · **187 tests** — green.
 3. The matrix palette, fresh session.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 52 — An act has a beginning and an end, and a correction to the table
+
+**2026-07-28 10:14 CEST (UTC+02:00)**
+
+### Start and goal, identified structurally
+
+No recovered name says "goal panel", so I fingerprinted it: across the 13
+non-boss acts, **id 520 is placed exactly once per act at a mean 86% of the act's
+width** (11 of 13 acts), and **id 443 exactly once at 3%**, in the playable band.
+Nothing else has either shape. 520 is the goal; 443 is the start marker.
+
+The start marker closes a note that has sat in `EnterStage` since the player was
+written: *"the real spawn comes from the .EV placement data, once object ids have
+names."* It did not need a name — it needed statistics. The player now spawns
+where the original game spawns them, verified against real data: Zone 1 Act 1
+puts the player at pixel 3,904, our engine at exactly `3904 * WorldPerPixel`.
+
+Crossing the goal sets `ActClear` and the status line says so with the ring
+count. **Zone 1 Act 1 can be played from its real start to its real end.**
+Vertical acts whose goal is not "cross the X" are noted as future work.
+
+### The director's question, and the table it exposed
+
+Asked, fairly: *"show me the game fully rendered if it's on 99%."* The screenshot
+from the true start marker is the answer, and it is recognisably the act and
+obviously not the finished game.
+
+The 99% measures **decoding** — 3,546/3,546 models, 276,662 animation channels,
+1,843/1,843 shaders parse — and says nothing about pixels. The renderer uses
+roughly a third of what is decoded: tile layers, textures, alpha, through a stock
+unlit effect. No game shaders executed, no lighting, no sky (drawn by systems
+outside the tile grids, hence the void), no characters.
+
+The table now says this in bold and carries **rendering fidelity ~35%** as its
+own number. A metric that invites misreading is a bug in the documentation, and
+it was mine.
+
+### Regression
+
+Whole solution · **191 tests** — green, including real-data checks that the
+player spawns at the marker and the goal clears the act.
+
+### Progress
+
+**≈70% decoding · ~35% rendering fidelity.** Phase 4 ~45%.
+
+### Next
+
+1. The sky and far background, which would do more for the screenshots than any
+   other single change.
+2. Item boxes; checkpoint id 719 by the same statistics.
+3. The matrix palette, fresh session.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
