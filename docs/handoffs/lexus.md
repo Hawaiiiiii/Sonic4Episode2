@@ -3035,3 +3035,60 @@ Whole solution including Android · **146 tests** — green.
 3. The real shader pipeline instead of a stock unlit effect.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 43 — Objects have models, and they are named almost mechanically
+
+**2026-07-28 04:12 CEST (UTC+02:00)**
+
+Three attempts at the matrix palette across four beats produced eliminations and
+no answer, so I stopped — my own halting rule — and went at something unblocked.
+
+**Every gimmick ships as `EP2_GMK_<NAME>_MDL.AMB`**, with `_TEX` and `_MTN`
+beside it. 65 of them across the build, in each zone's `GMK` directory and in
+`G_COM/GMK`.
+
+The catalogue's object names and those stems are plainly the same naming scheme:
+
+| Object | Archive | Rule |
+|--------|---------|------|
+| `Jetwall04` | `JETWALL` | strip trailing digits |
+| `SandBranch03` | `SAND_BRANCH` | strip digits, split camel case |
+| `Avalanche01` | `AVLNCH` | **abbreviated** |
+| `CandleStick` | `SCONCE` | **renamed outright** |
+| `SandTrank01` | `SAND_TANK` | **the game's own typo** |
+
+`ObjectModels` does the mechanical part and resolves **8 of the 45** recovered
+names.
+
+### What I did not do
+
+Write a table of guesses. `AVLNCH` is very probably `Avalanche` and `SCONCE` is
+very probably `CandleStick`, and I could have shipped thirty such lines and taken
+the coverage from 8 to 40.
+
+A table of very-probablies is how bad data gets into a project that is careful
+everywhere else, and it would be indistinguishable in six months from the parts
+that were actually read. There is a test that asserts `Avalanche01` resolves to
+**nothing**, so that the day someone adds the alias, they do it deliberately.
+
+The honest way to close these is the zone each object is placed in: `SandBranch`
+should only appear where `SAND_BRANCH` ships. That is a real signal and it is not
+expensive, it is just not this beat.
+
+### Regression
+
+Whole solution including Android · **153 tests** — green.
+
+### Progress
+
+**≈68%.** Phase 4 ~39%.
+
+### Next
+
+1. Confirm the abbreviated model names by which zone places each object.
+2. Draw the objects that resolve, at their placements.
+3. The matrix palette, with fresh eyes.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
