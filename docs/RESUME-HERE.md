@@ -76,18 +76,25 @@ flags with recovered values as each is confirmed.
 
 ## Where things stand
 
-**Overall ≈72% *decoding*, ~50% *rendering fidelity*** — two separate numbers, and
+**Overall ≈76% *decoding*, ~50% *rendering fidelity*** — two separate numbers, and
 keep them separate. Decoding measures data out of the files (phases 1-2 are near
 done); rendering fidelity measures pixels matching the original (phase 3's visible
 result), and it is lower because the renderer uses a stock unlit effect and the
 game's own shaders are parsed but not executed. Phase 1 ~95%, phase 2 ~99%, phase
-3 ~98%, phase 4 ~47%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
-**198 tests, all green.** Last committed at beat 57; beat 58 (matrix palette) is
-the current uncommitted work.
+3 ~98%, phase 4 ~55%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
+**201 tests, all green.** Last beat: 59, committed and pushed.
 
-**The matrix palette is solved (beat 58).** A real skinned Sonic renders in the
-viewer, posed and animated. The last-remaining structural blocker for character
-rendering is closed; see the ⭐ section above and `docs/FORMAT-NN.md`.
+**Two structural blockers closed in the last two beats:**
+
+- **The matrix palette (beat 58).** A real skinned Sonic renders in the viewer,
+  posed and animated. See the ⭐ section above and `docs/FORMAT-NN.md`.
+- **Every object id is named (beat 59).** 679 of 714 ids carry their engine class,
+  read from the Android build's dispatch table via `tools/dispatch.py`; 99.8% of
+  all placements in all 30 acts resolve. This also **fixed a real bug**: springs
+  and dash panels had been matching on the unreliable scraped *asset* name and
+  were wired to ids Zone 1 Act 1 never places, so the act had **zero springs** and
+  six item monitors acting as dash panels. It now loads 24 springs and 11 panels.
+  **Match on `ObjectCatalog.Class`, never on `Name`.**
 
 **Assets — decoded and verified against the whole build:** the **AMB** container,
 **stage tile grids** (`.MP`/`.MD`), **placement tables** (`.EV`/`.DC`/`.RG`),
@@ -139,11 +146,14 @@ reference the Desktop head. Full Android build needs the SDK flags:
    The palette is computed from the node tree, not stored; the per-list bone
    subset lives at vertex-descriptor `+0x18`. `MatrixPalette.Build` +
    `TileMesh.Skinned` render a real skinned, animated Sonic. See `docs/FORMAT-NN.md`.
-2. **Map the 382 `obj@ADDR` handlers to `GmGmk*` names** (now the top priority),
-   then implement behaviours reading each `GmGmk*Init` for its real Episode II
-   constants (springs/dash panels are the template, but now with recovered values
-   instead of Episode I's flagged ones). `GmPlySeqInitDamage` (`0x005B9368`) gives
-   damage, `GmGmkSpringInit` (`0x00563CB0`) the spring impulse.
+2. ~~**Map the 382 `obj@ADDR` handlers to `GmGmk*` names.**~~ **DONE (beat 59)** —
+   `tools/dispatch.py`, 679 ids named, `ObjectCatalog.Class`. What remains is
+   **implementing behaviours by class**, which is now pure volume with no
+   identification risk: `Item` (item boxes), `BreakObj` / `BreakWall_*`,
+   `Needle`, `WaterArea`, `Land` (moving platforms). And **reading each
+   `GmGmk*Init` for Episode II's real constants** to retire the last
+   "Episode I's, not recovered" flags — `GmGmkSpringInit` (`0x00563CB0`) for the
+   spring impulse, `GmPlySeqInitDamage` (`0x005B9368`) for damage.
 3. **The shader pipeline** — largest rendering-fidelity gap, still a fresh-session
    project (MonoGame runs MGFX not GLSL). Groundwork in beat 55.
 
