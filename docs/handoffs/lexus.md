@@ -3730,3 +3730,41 @@ the reverse engineering just went from "hard, one function at a time" to "named,
 disassemble the function that says what it does."
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 57 — Project identity settled: reimplementation, two-act roadmap
+
+**2026-07-28 18:05 CEST (UTC+02:00)**
+
+Long framing conversation with the director, settled and now locked into the docs
+(`README.md`, `plans/EXECPLAN.md`, `docs/RESUME-HERE.md`).
+
+**The verdict.** This is a **clean-room reverse-engineered reimplementation**, not
+a matching decompilation, and that is the correct treatment — not a lesser one.
+Episode I could be a decompilation because its source was a **managed .NET build**
+(which is also why the Episode I decomp is the older pre-HD mobile version).
+Episode II is **all native** (x86 PC/console, ARM Android) with **no managed
+build** — the WP7 port was cancelled — so there is nothing to losslessly
+decompile. The honest label is reimplementation / reverse-engineered source port,
+and it is the stronger claim anyway.
+
+**Corrections the director made, now reflected:** the Episode I decomp *does* run
+on phones (I was wrong), and it is based on the older iOS/mobile build, not the
+HD one. That detail actually reinforces everything — the managed build that could
+be decompiled was the old one. Ours is built from the **PC/HD lineage**, so it
+targets the definitive version, and runs on phones like Episode I's does.
+
+**Roadmap locked as two acts.** Act 1 = the reimplementation (the whole
+deliverable, in progress). Act 2 = an optional future *matching* decompilation,
+made tractable for the first time by the symbolized Android dev build; Act 1's
+understanding is Act 2's groundwork, so the order loses nothing. Best Act 2 target
+is `libfox.so` (symbols), not the stripped PC release.
+
+**Also refreshed the README's stale Status** — it still claimed placeholder
+physics and no goal; now current (recovered physics, springs, dash panels, real
+start/goal, animated gimmicks, sky, 193 tests, ~70%/~46% split).
+
+No code changed. Docs only. Everything pushed.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus

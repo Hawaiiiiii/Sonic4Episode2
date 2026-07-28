@@ -3,6 +3,30 @@
 Single source of truth for where this project stands. Update at the end of every
 working session. If chat history is gone, start from this file.
 
+## What this project is (settled — use this framing everywhere)
+
+A **clean-room, reverse-engineered reimplementation** of Sonic 4 Episode II in
+portable C#, from-scratch, reproducing the game 1:1. **Not** a matching
+decompilation — and that is correct, not a compromise:
+
+- Episode I is a *decompilation* only because its source was a **managed .NET
+  build** (the older, pre-HD mobile version), which decompiles to C# losslessly.
+- Episode II has **no managed build** — all native (x86 PC/console, ARM Android);
+  the Windows Phone 7 managed port was cancelled. Native code doesn't decompile to
+  clean source, so the correct treatment is a reimplementation.
+- Ours is built from the **PC build (HD/console lineage)** — the definitive
+  version, not the dated mobile one Episode I's decomp is locked to. Like Episode
+  I's, it runs on phones.
+- The payoff equals a decompilation's: total engine control, deep modding,
+  translations, QoL, debugging, and preservation (Episode I and II were pulled
+  from mobile stores — the official builds are already vanishing).
+
+**Roadmap — two acts.** *Act 1 (now):* the reimplementation, the whole deliverable.
+*Act 2 (future stretch, optional):* a matching decompilation, made tractable only
+by the symbolized Android dev build below; Act 1 is its groundwork, so nothing is
+wasted. Do not relabel Act 1 as a "decompilation" — the honest term is
+reimplementation / reverse-engineered source port, and it is the stronger claim.
+
 ## ⭐ READ FIRST — a fully-symbolized second oracle appeared (end of last session)
 
 `C:\Users\DavidErikGarciaArena\Downloads\[ANDROID] Sonic The Hedgehog 4 Episode II`
