@@ -2977,3 +2977,61 @@ Whole-solution build · **146 tests** — green.
 3. Damage, which needs its code read the way the spin dash was.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 42 — It looks like Sylvania Castle now
+
+**2026-07-28 03:41 CEST (UTC+02:00)**
+
+The director asked why the project looked like a wall of bricks. Three separate
+causes, none of them a rendering bug, all now fixed.
+
+**Only one layer was being drawn.** An act ships sixteen grids; seven are scenery
+and the engine instanced exactly one, `_B`. All seven now go in — 17,526 tiles
+becomes **21,890**, and the towers, railings, arches and window tracery appear
+with them.
+
+**The camera was inside a wall.** Zone 1 Act 1 is **solid masonry from row 0 to
+row 25 across its entire 510-cell width** — the castle backdrop behind the level.
+A player dropped from the top of the map lands on that ceiling, and the camera
+follows it there. `--spawn x,y` now picks a row, and dropping from row 28 lands in
+the playable band.
+
+**Cut-out textures drew as black silhouettes.** Foliage, railings and tracery all
+carry alpha; the renderer was not blending. One line, and the black blobs became
+white blossom and green ivy.
+
+The result is recognisably the real level. Rings sit in their arcs where the `.RG`
+file puts them, the ruined arches and columns are there, and the blossom hangs off
+the stonework.
+
+### An arithmetic error, corrected
+
+The weighted table said **69%** when its own rows sum to **66.3%**. I added them
+up wrong in beat 39 and carried it. Now 67% with phase 3 at 95%, and the rows and
+the total agree.
+
+Worth the correction on a project whose whole argument is that the numbers are
+checked.
+
+### What is still visibly missing
+
+Lighting, the game's own 1,843 shaders (parsed for thirteen beats, still unused),
+objects, and a character model where the blue sliver is.
+
+### Regression
+
+Whole solution including Android · **146 tests** — green.
+
+### Progress
+
+**≈67%.** Phase 3 ~95%.
+
+### Next
+
+1. **The matrix palette**, for a character model.
+2. Object spawning, so the 533 identified placements become things.
+3. The real shader pipeline instead of a stock unlit effect.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
