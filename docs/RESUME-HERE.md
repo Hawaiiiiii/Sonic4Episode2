@@ -125,10 +125,12 @@ animate** (rigid models only). The **sky** draws from the `MAPFAR` archive. The
 posed and animated from `SON_MTN` (idle / walk / run / roll), not a placeholder.
 **Still missing:** damage/enemies/bosses and most of the 382 object behaviours.
 
-**Behaviour constants that are Episode I's, flagged not-recovered:** spring
-impulse 7.5, dash-panel boost 13.5, roll threshold 0.5, Super at 50 rings. Each is
-marked in code; Episode II's own values are not yet traced. The physics *table* is
-recovered; these individual gimmick numbers are not.
+**Behaviour constants — dash-panel 13.5 now RECOVERED (beat 60).** Read from
+Episode II's own direction table at `0x0096C658`; every entry has magnitude
+13.500. The spring's 8 launch directions (A16 angle table `0x00961D34`) and a
+9.0 px/frame vertical cap are also recovered. Still Episode I's and flagged:
+spring base speed 7.5 (passed as an argument, no named constant), dash-panel
+no-friction window 12 frames, roll threshold 0.5, Super at 50 rings.
 
 **Phones.** `Sonic4Episode2.Android` **builds a signed APK** (18 MB Release),
 linking the desktop renderer directly, with `AndroidContent` over shared storage

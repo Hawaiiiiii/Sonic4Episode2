@@ -3939,3 +3939,69 @@ no longer blocked on identification, only on implementation.
 3. The shader pipeline.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 60 — Dash panel 13.5 recovered from Episode II; spring and panel directions found
+
+**2026-07-28 20:47 CEST (UTC+02:00)**
+
+With every gimmick now named (beat 59), the flagged "Episode I's, not recovered"
+constants can be read from the named handlers instead of borrowed. Two are now
+read from Episode II's own bytes.
+
+### Dash panel: 13.5, confirmed
+
+`GmPlySeqInitDashPanel` (`0x005D2254`) does not store a scalar — it indexes a
+table at `0x0096C658` by the panel's direction and loads a two-float velocity
+vector. Every one of the eight populated entries has magnitude **13.500**. So the
+number Episode I uses is the number Episode II uses, now *read* rather than
+assumed, and the flag retires. The table also gives the real direction set:
+`(13.5, 0)` / `(-13.5, 0)` / `(0, ±13.5)` — right, left, up, down.
+
+Beat 51 had searched for 13.5 in the Windows build and found it only in "curve
+arithmetic," which it honestly called corroboration-not-proof. That was the
+stripped build hiding the table; the symbolized one shows it plainly.
+
+### Spring: eight directions, and a recovered ceiling
+
+`GmGmkSpringInit` (`0x00563CB0`) reads a per-variant A16 angle table at
+`0x00961D34`: `0, 8192, 16384, 24576, 32768, 40960, 49152, 57344` — the eight
+compass directions at even 45-degree steps. So springs fire in eight directions,
+which beat 50 had left as "up-only until the flag mapping is recovered." The
+table it indexes is now known.
+
+The spring's launch *speed* is still Episode I's 7.5: `GmPlySeqInitSpringJump`
+(`0x005D1520`) takes the velocity as arguments from the touch handler rather than
+reading a named constant, so there is no single scalar to lift. What that sequence
+*does* yield is a recovered **vertical-velocity ceiling of 9.0** px/frame
+(`0x41100000`), which it clamps the launch to. 7.5 is below it, so it is a no-op
+here and left as documentation rather than a dead clamp.
+
+### What is still flagged, honestly
+
+- Dash panel no-friction window: 12 frames, still Episode I's — engine timing,
+  not in the table.
+- Spring base speed: 7.5, still Episode I's — passed as an argument.
+- Both gimmicks' direction is selected by the placement record's flag byte
+  (offset +4); the bit-to-variant mapping is the remaining open piece, and until
+  it is traced the engine keeps launching springs up and boosting panels along
+  travel — a wrong guess would be visible, not subtle.
+
+### Regression
+
+Whole solution · **202 tests** — green (1 new pinning the recovered constants).
+`docs/FORMAT-EVENTS.md` now carries the recovered-constant table.
+
+### Progress
+
+**≈77% decoding · ~50% rendering fidelity.** Phase 4 ~56%.
+
+### Next
+
+1. Trace the placement flag byte → direction variant for springs and panels, so
+   the eight directions actually fire.
+2. Implement more behaviours by class: item boxes (`Item`), breakables.
+3. The shader pipeline.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
