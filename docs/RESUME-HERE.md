@@ -5,8 +5,8 @@ working session. If chat history is gone, start from this file.
 
 ## Where things stand
 
-**Overall ≈66%.** Phase 1 ~95%, phase 2 ~99%, phase 3 ~94%, phase 4 ~37%,
-phase 5 ~12%. Weighted table in `plans/EXECPLAN.md`. The runnable game is still
+**Overall ≈69%.** Phase 1 ~95%, phase 2 ~99%, phase 3 ~94%, phase 4 ~37%,
+phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`. The runnable game is still
 far from complete, but the slice that runs is real.
 
 **Assets.** Decoded and verified against the whole build: the **AMB** container,
@@ -32,12 +32,12 @@ model and can be collected; fifty of them transforms the player onto the Super
 row. Every object id in Zones 1-4 Act 1 resolves against the catalogue. **Objects
 are not spawned yet** and there are no enemies, damage or goal.
 
-**Phones.** The core library and the renderer no longer touch a filesystem —
-everything goes through `IContentSource` — and touch input works via `VirtualPad`,
-verified driving Zone 1 on a 1080x2400 portrait screen. **There is no Android head
-yet**: the .NET workload is installed but the Android SDK is not, and installing
-it requires accepting Google's licence terms, which is the director's call. See
-`docs/MOBILE.md`.
+**Phones.** `Sonic4Episode2.Android` **builds a signed APK** (18 MB Release). It
+links the desktop renderer directly rather than duplicating it, and supplies an
+`AndroidContent` over shared storage plus a `TouchInput` feeding `VirtualPad`.
+**Not yet run on a device.** The SDK lives at `C:/Android/sdk` with a JDK at
+`C:/Android/jdk`; set `JAVA_TOOL_OPTIONS=-Xmx256m` or the JVM will not start on
+this machine. iOS needs a Mac. See `docs/MOBILE.md`.
 
 **Build and test with `dotnet build` on the whole solution, not just
 `dotnet test`** — the test project does not reference the Desktop head, so a break
