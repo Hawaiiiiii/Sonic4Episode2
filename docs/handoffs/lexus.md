@@ -3243,3 +3243,55 @@ Whole solution · **162 tests** — green. No code changed; a tool and a doc.
 3. Trace one handler's asset load properly, as the template for the rest.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 47 — Animation, decoded and sampling
+
+**2026-07-28 06:41 CEST (UTC+02:00)**
+
+A completely unblocked, high-value piece: motion keyframes. The channel headers
+have parsed for a dozen beats, but the keys they point at had not been decoded, so
+nothing could actually move. Now they are.
+
+Two encodings, told apart by key size, verified across **276,662 channels**:
+
+- **8 bytes** — `float frame, float value`. Translation and scale. **79,570 of
+  79,570** monotonic.
+- **4 bytes** — `s16 frame, s16 value`, the value an **A16 angle**. Rotation.
+  **197,092** channels, monotonic once the frame is read *signed*.
+
+The A16 rotation is the same convention the node angles use (beat 35) — the third
+field in this format that keeps an angle as an integer where a float reader gets
+denormals. And the frame being signed is the whole story behind the 846 channels
+that first looked non-monotonic: transition animations start at **-5 or -10** for
+blend pre-roll, exactly the negative frames `NnMotion` already documents.
+
+`MotionSampler.Decode` turns a channel into keys; `Sample(frame)` interpolates and
+returns radians for a rotation. End to end on `SON_BRAKE01`: all 390 channels
+decode, and a node-2 rotation sweeps **-5.8 to -53.9 degrees** across its 10
+frames — a joint bending through a brake. That is a real Sonic animation being
+read out of the file and evaluated.
+
+### What this unlocks
+
+Combined with the node tree (beat 35), the project can now **pose and animate any
+non-skinned model** — every gimmick, every rigid prop. Skinned characters still
+wait on the matrix palette, but the animation half of them is done.
+
+### Regression
+
+Whole solution · **169 tests** — green. Seven new, and a real-motion check that
+decodes all 390 channels of Sonic's brake.
+
+### Progress
+
+**≈68%.** Phase 2 essentially complete.
+
+### Next
+
+1. The matrix palette — the one thing between here and animated *characters*.
+2. Animate the placed gimmicks, which are non-skinned and can move today.
+3. Object behaviours for the resolved set.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus

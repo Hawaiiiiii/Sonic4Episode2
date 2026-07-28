@@ -12,7 +12,7 @@ far from complete, but the slice that runs is real.
 **Assets.** Decoded and verified against the whole build: the **AMB** container,
 the **stage tile grids** (`.MP`/`.MD`), the **placement tables** (`.EV`/`.DC`/`.RG`),
 the **texture banks** (`.TXB`), the **NN container**, the **NZOB object header**,
-geometry, **node hierarchies** and **skinning weights**, **collision height fields
+geometry, **node hierarchies**, **skinning weights**, **motion keyframes**, **collision height fields
 and surface angles**, **DDS**, **D3D9 shader bytecode** and **CRI containers**.
 
 **Recovered from `Sonic.exe`, not guessed:**
