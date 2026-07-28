@@ -5,7 +5,7 @@ working session. If chat history is gone, start from this file.
 
 ## Where things stand
 
-**Overall ≈65%.** Phase 1 ~95%, phase 2 ~98%, phase 3 ~94%, phase 4 ~37%,
+**Overall ≈66%.** Phase 1 ~95%, phase 2 ~99%, phase 3 ~94%, phase 4 ~37%,
 phase 5 ~12%. Weighted table in `plans/EXECPLAN.md`. The runnable game is still
 far from complete, but the slice that runs is real.
 
@@ -45,9 +45,9 @@ there goes unnoticed. 140 tests.
 
 ## The next three things
 
-1. **The matrix palette**, which is all that stands between here and a character
-   on screen. Weights are decoded; which matrix each weight refers to is not.
-   Go at it from the draw path in the binary, not the loader — see beat 38.
+1. **The matrix palette.** Weights and blend indices are both decoded now; the
+   indices are palette-relative and never exceed 15, so what remains is the
+   ≤16-entry table mapping them to nodes. See beats 38-40.
 2. **The Android head**, once the SDK licence is accepted.
 3. **Damage**: ring loss, invincibility, knockback. Episode I's constants do not
    appear in Episode II, so this needs the damage code read the way the spin dash

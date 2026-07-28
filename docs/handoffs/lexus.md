@@ -2843,3 +2843,75 @@ Whole-solution build · **140 tests** — green.
 3. Damage, which needs its code read the way the spin dash was.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 40 — Blend indices, and a bit I had mislabelled
+
+**2026-07-28 12:03 CEST (UTC+02:00)**
+
+Beat 39 left one question: the shader reads bone indices from `v2`, but Sonic's
+48-byte vertex was fully accounted for by position, weights, normal and texture
+coordinates with nothing spare.
+
+The answer is that **one of the four bits I called a weight is not a weight.**
+
+```
+w 0.0122 0.9878 0.0000  (sum 1.0000)   last dword 00000100 = bytes 0,1,0,0
+w 0.0133 0.9867 0.0000  (sum 1.0000)   last dword 00000100 = bytes 0,1,0,0
+```
+
+Three floats summing to exactly 1, then a dword that is four small bytes. So:
+
+| Bits | What |
+|------|------|
+| `0x01000`, `0x02000`, `0x04000` | one float weight each |
+| `0x00400` | **four blend indices, one per byte** — a D3D `UBYTE4` |
+
+Which is precisely what the shader wanted: `v1` a three-float weight, `v2` a
+`UBYTE4` index scaled into a register offset. The fourth weight is implicit —
+three summing to one leaves nothing for it.
+
+### Verified across the build
+
+- **All 572 skinned vertex lists carry exactly three weights.** Beat 37's "395
+  with three and 177 with four" was this mislabelling; the 177 are the ones that
+  additionally carry the index dword.
+- Weights sum to 1.000 on **96% of 112,831** sampled vertices.
+- Index sets valid on **53,941 of 53,941**, largest byte **15**.
+
+### Why beat 37 did not catch it
+
+I summed all four slots and got 1.0, which looked like confirmation. It was not:
+the index dword for a low-numbered bone is bytes like `0,1,0,0`, and *as a float*
+that is a denormal — effectively zero. **Adding zero to a correct sum leaves it
+correct.** The check passed for the wrong reason on exactly the lists that
+disproved the hypothesis.
+
+That is the sixth time this project a check has agreed with me while measuring
+something else. It is also the second time the fix came from reading the bytes as
+what they are rather than as what I expected.
+
+### What is left
+
+The indices are **palette-relative** — never above 15, against models with up to
+109 nodes. So what remains is a table of at most sixteen entries per mesh set
+mapping index to node. That is a much smaller and better-shaped target than beat
+38's "find the matrix palette".
+
+### Regression
+
+5,727 NN containers · 3,546 models · whole-solution build · **146 tests** — green.
+Six of the new tests run against the installed game and skip cleanly without it.
+
+### Progress
+
+**≈66%.** Phase 2 ~99%.
+
+### Next
+
+1. **The index-to-node table**, at most 16 entries per mesh set.
+2. The Android head, once the SDK licence is accepted.
+3. Damage, which needs its code read the way the spin dash was.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
