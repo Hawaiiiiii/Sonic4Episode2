@@ -76,13 +76,13 @@ flags with recovered values as each is confirmed.
 
 ## Where things stand
 
-**Overall ≈77% *decoding*, ~52% *rendering fidelity*** — two separate numbers, and
+**Overall ≈78% *decoding*, ~52% *rendering fidelity*** — two separate numbers, and
 keep them separate. Decoding measures data out of the files (phases 1-2 are near
 done); rendering fidelity measures pixels matching the original (phase 3's visible
 result), and it is lower because the renderer uses a stock unlit effect and the
 game's own shaders are parsed but not executed. Phase 1 ~95%, phase 2 ~99%, phase
-3 ~98%, phase 4 ~57%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
-**202 tests, all green.** Last beat: 61, committed and pushed.
+3 ~98%, phase 4 ~58%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
+**206 tests, all green.** Last beat: 62, committed and pushed.
 
 **Recent structural progress (beats 58-61):**
 
@@ -103,6 +103,12 @@ game's own shaders are parsed but not executed. Phase 1 ~95%, phase 2 ~99%, phas
   boxes, needles, all exact-matched. **Gimmick direction is zone-dependent** (a
   runtime mode crossed with id ranges), not in the placement data; decoding that
   mode is the next step to make springs/panels fire in eight directions.
+- **Item boxes break (beat 62).** `ItemBoxes` breaks a monitor on contact and the
+  viewer stops drawing it. The item system is reverse-engineered (id→type via
+  `GmGmkItemInit`; five named effects) but the **effect grant is OPEN**: the type
+  is refined at runtime by game state, and the effect dispatch is a player-side
+  vtable not yet traced. Grant nothing rather than a guessed Episode I mapping.
+  See `docs/FORMAT-EVENTS.md`.
 
 **Assets — decoded and verified against the whole build:** the **AMB** container,
 **stage tile grids** (`.MP`/`.MD`), **placement tables** (`.EV`/`.DC`/`.RG`),

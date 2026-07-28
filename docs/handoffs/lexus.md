@@ -4059,3 +4059,58 @@ visible gain). Phase 4 ~57%.
 3. The shader pipeline.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 62 — Item boxes break, and the item system is reverse-engineered
+
+**2026-07-28 22:40 CEST (UTC+02:00)**
+
+Item boxes now break when the player touches them — a new `ItemBoxes` trigger
+system modeled on `Springs`/`DashPanels`, wired as `GM_ITEM` and reported in the
+status line (Zone 1 Act 1: 6 boxes). The viewer stops drawing a box once broken,
+matching by world position. **206 tests, 4 new.**
+
+### Why it breaks but grants nothing — and that being the honest choice
+
+I reverse-engineered the full item system and stopped exactly where the evidence
+stopped. What is recovered (in `docs/FORMAT-EVENTS.md`): `GmGmkItemInit`
+(`0x00539460`) derives a box's base item type from its object id through two jump
+tables (`0x00960778`, `0x0096077C`) and a config array (`0x009607A0` =
+`[2,3,4,1,5,6]`). The five effects exist and are **named** in Episode II —
+`GmPlayerItemHiSpeedSet`, `…InvincibleSet`, `…Ring10Set`, `…BarrierSet`,
+`…1UPSet` — matching Episode I's `GmGmkItem.cs` (speed / invincible / 10 rings /
+shield / 1-UP).
+
+Two things are genuinely open, and both block a faithful grant:
+
+1. The config value is **refined at runtime** by game state — co-op and Super
+   availability change what a box shows — so the id does not fix the effect.
+2. The effect is applied **player-side through a vtable dispatch** with no direct
+   `BL`/`ADRP+ADD` reference to the five functions, so the config-to-effect
+   mapping is not yet readable from Episode II's own code.
+
+I could have hard-coded Episode I's id order and called it done. That is exactly
+the borrowed value this project flags, so the grant stays unimplemented and the
+mapping OPEN. Three of the five effects (speed, shield, invincibility) also need
+player subsystems this engine does not have. Breaking is the confirmed,
+self-contained behaviour and the foundation the grant will sit on, so it ships
+now; the effect follows once the dispatch is traced and those subsystems exist.
+
+### Regression
+
+Whole solution including Android · **206 tests** — green. Live: 6 item boxes
+registered, 126 object models placed.
+
+### Progress
+
+**≈78% decoding · ~52% rendering fidelity.** Phase 4 ~58%.
+
+### Next
+
+1. Trace Episode II's item-effect dispatch (the vtable path) to prove the
+   config-to-effect mapping, then grant rings and 1-UP (systems exist).
+2. Player power-up subsystems (speed shoes, shield, invincibility) for the rest.
+3. The zone-mode that selects gimmick direction; the shader pipeline.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
