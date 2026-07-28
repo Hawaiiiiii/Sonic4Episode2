@@ -3144,3 +3144,44 @@ Whole solution including Android · **162 tests** — green.
 3. The renames — `SCONCE`, `NEEDLE` — need something other than their letters.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 45 — Objects appear in the world
+
+**2026-07-28 05:22 CEST (UTC+02:00)**
+
+The resolver from beat 44 now feeds the renderer: every placement whose object
+name provably maps to a model archive gets that model instanced at its `.EV`
+position. The batch is built once — placements do not move — and textures come
+from the `_TEX` archive beside each model.
+
+**Zone 2 Act 1 is the demonstration act**: 71 `Avalanche02` objects drawn down
+the big snow slope, exactly where the placement file puts them, in a stage that
+renders as White Park — snow, ice pillars, decorated pines, snowmen.
+
+Zone 1 Act 1 places exactly one resolvable object, which is why it stayed
+empty-looking: its named ids are `Uri01`, `Speed` and `B_Piller_D01`, and only
+the last resolves. `Speed` is almost certainly the dash panel (`DASH_P` ships in
+`G_COM`) and `Uri01` is plausibly the urchin — but *almost certainly* still
+does not resolve anything in this project, so they stay absent.
+
+Placement anchors are unknown, so each model sits centred on its point — wrong
+for base-anchored objects and visibly so, which is what a first pass should be.
+
+### Regression
+
+Whole solution · **162 tests** — green.
+
+### Progress
+
+**≈68%.** Phase 4 ~40%.
+
+### Next
+
+1. The matrix palette, fresh eyes.
+2. `Speed`/`DASH_P` and the other renames need confirming from the spawn code —
+   the handler that loads the archive names both.
+3. Object behaviours for the resolved set: a spring that springs.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
