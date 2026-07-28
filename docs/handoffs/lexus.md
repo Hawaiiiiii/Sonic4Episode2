@@ -4114,3 +4114,59 @@ registered, 126 object models placed.
 3. The zone-mode that selects gimmick direction; the shader pipeline.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 63 — Item boxes give their items; the mapping is Episode II's own
+
+**2026-07-28 23:27 CEST (UTC+02:00)**
+
+Beat 62 broke boxes but flagged the effect OPEN because the grant dispatches
+player-side with no direct call to the effect functions. Traced it: the effects
+are **exported**, so the item dispatcher (`0x0053A6C0`) reaches them through the
+**PLT/GOT** — which is why a `BL`/`ADRP+ADD` scan found no callers. Following
+dynsym → `.rela.plt` GOT slot → PLT stub → caller landed on the one dispatcher,
+where all five effects are called from a tight `br`-table cluster.
+
+### The mapping, read straight from the dispatcher
+
+It computes `config - 1`, indexes a jump table at `0x0096079A` = `[0,2,4,6,8,10]`,
+and branches: config 1→shield, 2→speed, 3→invincible, 4→ten rings, 5→1-UP,
+6→special. Composed with `GmGmkItemInit`'s id→config chain (beat 62), the item
+per id falls out — and **ids 63-67 come out speed / invincible / 10 rings /
+shield / 1-UP, the exact order Episode I's `GmGmkItem.cs` lists.** Two oracles,
+recovered independently, agreeing to the letter. `ItemBoxes.TypeOf` carries it;
+`docs/FORMAT-EVENTS.md` has the table.
+
+### What the engine grants now
+
+Rings and 1-UPs, which it has systems for: a ten-ring monitor hands over ten
+rings (and re-checks Super), a 1-UP adds a life — a new `GameEngine.Lives`,
+starting at the series' three. Shield, speed shoes and invincibility are
+identified and break, but grant nothing pending player power-up subsystems, and
+that is flagged rather than faked. Zone 1 Act 1's own monitors are **3 ten-ring,
+2 1-UP, 1 speed** — so 30 rings and 2 lives are now collectable there.
+
+### Verified through the full engine
+
+Two real-data integration tests: the booted act's boxes report exactly
+`{Ring10:3, OneUp:2, HiSpeed:1}`, and standing the player on a ring monitor and
+stepping the engine raises the ring count by ten through the live `GM_ITEM` task.
+
+### Regression
+
+Whole solution including Android · **210 tests** — green (4 new). The item mapping
+moved from OPEN (beat 62) to recovered-and-cross-checked.
+
+### Progress
+
+**≈79% decoding · ~53% rendering fidelity.** Phase 4 ~60%.
+
+### Next
+
+1. Player power-up subsystems (shield, speed shoes, invincibility), then the
+   remaining three item effects grant too.
+2. The zone-mode selecting gimmick direction; damage/enemies (`GmPlySeqInitDamage`).
+3. The shader pipeline.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus

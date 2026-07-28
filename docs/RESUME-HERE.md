@@ -81,8 +81,8 @@ keep them separate. Decoding measures data out of the files (phases 1-2 are near
 done); rendering fidelity measures pixels matching the original (phase 3's visible
 result), and it is lower because the renderer uses a stock unlit effect and the
 game's own shaders are parsed but not executed. Phase 1 ~95%, phase 2 ~99%, phase
-3 ~98%, phase 4 ~58%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
-**206 tests, all green.** Last beat: 62, committed and pushed.
+3 ~98%, phase 4 ~60%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
+**210 tests, all green.** Last beat: 63, committed and pushed.
 
 **Recent structural progress (beats 58-61):**
 
@@ -103,12 +103,14 @@ game's own shaders are parsed but not executed. Phase 1 ~95%, phase 2 ~99%, phas
   boxes, needles, all exact-matched. **Gimmick direction is zone-dependent** (a
   runtime mode crossed with id ranges), not in the placement data; decoding that
   mode is the next step to make springs/panels fire in eight directions.
-- **Item boxes break (beat 62).** `ItemBoxes` breaks a monitor on contact and the
-  viewer stops drawing it. The item system is reverse-engineered (id→type via
-  `GmGmkItemInit`; five named effects) but the **effect grant is OPEN**: the type
-  is refined at runtime by game state, and the effect dispatch is a player-side
-  vtable not yet traced. Grant nothing rather than a guessed Episode I mapping.
-  See `docs/FORMAT-EVENTS.md`.
+- **Item boxes give their items (beats 62-63).** `ItemBoxes` breaks a monitor on
+  contact, the viewer stops drawing it, and it grants its item. The full mapping
+  is **recovered from Episode II's own dispatch** (`0x0053A6C0`, config→effect via
+  PLT/GOT) and cross-checks Episode I's `GmGmkItem.cs` exactly: ids 63-67 =
+  speed / invincible / 10 rings / shield / 1-UP. The engine grants **rings and
+  1-UPs** (systems exist; `GameEngine.Lives` added); shield / speed / invincible
+  are recovered but break without effect, pending player power-up subsystems.
+  Zone 1 Act 1 has 3 ring, 2 1-UP, 1 speed monitor. See `docs/FORMAT-EVENTS.md`.
 
 **Assets — decoded and verified against the whole build:** the **AMB** container,
 **stage tile grids** (`.MP`/`.MD`), **placement tables** (`.EV`/`.DC`/`.RG`),
