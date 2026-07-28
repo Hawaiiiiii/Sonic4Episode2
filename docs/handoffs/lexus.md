@@ -3546,3 +3546,48 @@ player spawns at the marker and the goal clears the act.
 3. The matrix palette, fresh session.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 53 — The sky, and the void is gone
+
+**2026-07-28 10:51 CEST (UTC+02:00)**
+
+The director asked to see the game rendered and the honest answer was a black
+void above the level. This fills it.
+
+Each zone ships a nested `MAPFAR` archive — for Zone 1,
+`EP2_MAPFAR_ZONE1.AMB` containing `Z1_SKY`, `Z1_BG_FAR`, `Z1_GODRAY`,
+`Z1_SKY_CLOUD` and `Z1_PLANET`. That is the entire sky, and it was never being
+loaded, which is the whole reason the earlier shots had a void where the
+atmosphere should be. The models draw deep, behind everything, parallaxed against
+the camera — 0.7 of its motion horizontally, 0.3 vertically, the distance
+shorthand every side-scroller uses.
+
+Zone 1 now renders with its clouds, blue sky, distant tree line and the soft
+atmospheric gradient. It reads as a place rather than a wall against the dark.
+
+### Honest about what is rough
+
+The far scenery band sits too high and one mesh draws untextured — the parallax
+constants are eyeballed and the background's own vertical anchor is not yet
+matched to the stage. It is a real improvement that is visibly a first pass, which
+is the right kind of rough: the atmosphere is there and the placement is tunable,
+versus the void which was a missing system.
+
+### Regression
+
+Whole solution · **191 tests** — green.
+
+### Progress
+
+**≈70% decoding · ~42% rendering fidelity** (up from ~35% — the void was a large
+fraction of a screen).
+
+### Next
+
+1. Anchor the background to the stage properly and tune the parallax.
+2. The game's shader pipeline, the largest remaining rendering gap.
+3. The matrix palette, fresh session.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
