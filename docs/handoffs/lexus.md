@@ -3295,3 +3295,56 @@ decodes all 390 channels of Sonic's brake.
 3. Object behaviours for the resolved set.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 48 — The animation pipeline runs, on real gimmicks
+
+**2026-07-28 07:29 CEST (UTC+02:00)**
+
+I opened this beat trying the matrix palette again with "fresh eyes" and caught
+myself doing exactly what my contract warns against — my header dump landed on the
+wrong chunk (I was reading the texture list as the object header), the same
+mislocation as the last three attempts. So I stopped and redirected to something
+the pieces I already have can finish today.
+
+**Gimmicks are rigid, and rigid models need no palette.** Checking the resolved
+gimmicks' mesh sets: JetWall and Spring bind every mesh set to a single node with
+a real matrix index — no skinning. So the node tree (beat 35) plus the motion
+sampler (beat 47) is everything they need.
+
+**`AnimatedPose.World` is the compositor that joins them.** It takes the nodes'
+bind pose, overrides the components a motion animates, leaves the rest alone, and
+walks the hierarchy. The component comes from the channel type's high bits, in
+three triples — translation, rotation, scale — and which float triple is which was
+settled by value: the scale channels hold a constant 1.0 where translation ranges
+freely.
+
+Verified on the real files: a **jet wall's node moves 20 units** through its
+animation, read straight out of `EP2_GMK_JETWALL_MTN.AMB`. That is the whole
+pipeline — model, skeleton, motion, composition — running on game data for the
+first time.
+
+### What is now possible
+
+Every rigid model in the game can be **posed and animated**: gimmicks, props, the
+non-skinned parts of everything. The one thing still gated on the matrix palette
+is skinned *characters*, and that stays open — honestly, and with three documented
+dead ends behind it.
+
+### Regression
+
+Whole solution including Android · **175 tests** — green. Six new, plus a
+real-gimmick animation check.
+
+### Progress
+
+**≈69%.** Phase 3 to 96%, phase 2 complete.
+
+### Next
+
+1. Play the gimmick animations in the live viewer.
+2. The matrix palette — genuinely fresh session, not fresh eyes on a tired one.
+3. Object behaviours for the resolved set.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
