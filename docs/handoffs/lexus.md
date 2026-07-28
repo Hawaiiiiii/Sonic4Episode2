@@ -3768,3 +3768,91 @@ start/goal, animated gimmicks, sky, 193 tests, ~70%/~46% split).
 No code changed. Docs only. Everything pushed.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 58 — The matrix palette, and a real Sonic on screen
+
+**2026-07-28 19:49 CEST (UTC+02:00)**
+
+Three prior attempts (beats 36/38/41) went at the matrix palette from the data
+side and dead-ended, because there is nothing to find there: **the palette is not
+stored, it is computed.** The symbolized Android build named the function that
+computes it, and disassembling `nnCalcMatrixPaletteNode` (`0x0060FB94`) on arm64
+settled the whole thing in one read.
+
+### The algorithm, recovered and verified
+
+`nnCalcMatrixPaletteNode` walks the node tree and, for every node whose palette
+index (`+0x04`) is not -1, writes one slot:
+
+```
+palette[node.MatrixIndex] = node.InverseBind · node.world
+```
+
+in row-vector order. The inverse bind is the 64 bytes at node `+0x30` — long
+recorded as "inverse bind matrix" but never used. A node flagged
+`NND_NODETYPE_UNIT_INIT_MATRIX` (`0x8`) copies its world matrix untouched.
+
+The other half was the indirection the old notes kept hunting for. A vertex's
+`UBYTE4` blend index does **not** index the palette directly — it selects into the
+**vertex list's own bone subset**, a small array at descriptor `+0x18` (`nMatrix`
+count at `+0x14`), and *that* holds the global palette slot. This is the D3D9
+shape of Episode I's `pMatrixIndices`. The field the old "OPEN — unknown" note sat
+on at `+0x04` is just a secondary format word.
+
+### The proof is one property, and it is decisive
+
+At the bind pose every palette slot must come out **identity**, because each is
+`InverseBind · bindWorld` and the two are inverses by construction. Composing
+`SON_SPINMODEL`'s whole skeleton and building the palette gives identity to
+**3e-6**; every other rotation order fails by ≥1.0. That single check pins the
+inverse-bind offset, the **XYZ** rotation order (the old `NodeTransforms` rotated
+ZYX and looked right only because rigid gimmicks turn about one axis), the
+multiply order, and the unit flags all at once. The corpus sweep
+(`analysis/sweep_palette.py`) then confirms **750/750 weighted lists across 3,870
+models** have bone counts in `(0,16]` and every slot in range — 0 failures.
+
+### On screen
+
+`MatrixPalette.Build` and `TileMesh.Skinned` implement it; the desktop head loads
+`SON_MODEL` (full skeleton, 99 palette slots) and `SON_SPINMODEL` (the ball) with
+five `SON_MTN` motions and drives them from player state — idle when still, walk,
+run, and the spin ball while rolling/airborne. **The player is no longer a blue
+rectangle; it is the game's own Sonic, skinned and animated**, captured mid-stage
+and mid-run (screenshots in `analysis/`, gitignored).
+
+Honest about what is first-pass: the model's world placement is a ±90° yaw toward
+travel plus a translate to the player position — the authored axis convention and
+per-character scale are eyeballed, not yet confirmed against the game, so the
+facing/scale is tunable rather than proven. Flagged in `RESUME-HERE.md`.
+
+### The node changes ripple correctly
+
+Honoring the unit-translation/rotation/scale flags (bits 0-2) was not optional:
+`SON_MODEL` stores non-identity bytes under a set flag, and the engine skips the
+component without reading them. `NodeTransforms.Local` and `AnimatedPose.World`
+now both do this and both rotate XYZ. The existing node/animation tests use
+single-axis rotations, so they were unaffected — but the order is now right for
+the multi-axis skeletons that actually needed it.
+
+### Regression
+
+Whole solution including Android · **198 tests** — green (193 + 5 new palette
+tests, all against real game data). CLI cross-check: 1,614 archives, 0 failed, NN
+counts unchanged. `docs/FORMAT-NN.md` rewritten: the palette sections that said
+"not decoded" now record the solved algorithm, the two dead leads kept as the
+record of what it was *not*.
+
+### Progress
+
+**≈72% decoding · ~50% rendering fidelity.** Phase 3 ~98%, phase 4 ~47%.
+
+### Next
+
+1. Map the 382 `obj@ADDR` handlers to `GmGmk*` names — now the top priority.
+2. Confirm the player's facing/scale transform and drive richer animations from
+   state (309 motions in `SON_MTN`; the viewer plays five).
+3. The shader pipeline, still a fresh-session project.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus

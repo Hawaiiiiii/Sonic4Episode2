@@ -46,20 +46,28 @@ its symbol dump stay gitignored.
 
 **This directly unblocks every open item.** Named functions to disassemble:
 
-| Blocker | Named function(s) in libfox.so | Address (arm64) |
-|---------|-------------------------------|-----------------|
-| **Matrix palette** (3 failed attempts) | `nnCalcMatrixPaletteNode`, `nnCalcMatrixPaletteMatrixList`, `SsDrawObjectMatrixPalette(NNS_OBJECT*, …, float(*)[16], …)` | `0x0060FB94`, `0x0060FA38`, `0x00640F88` |
-| **Spring** launch (flagged) | `GmGmkSpringInit` | `0x00563CB0` |
-| **Dash panel** (flagged) | `GmPlayerSpdSet`, `SsStatusIsDashPanelNow` | `0x005A86F0`, `0x0066A104` |
-| **Damage** | `GmPlySeqInitDamage` | `0x005B9368` |
-| **Every gimmick handler** | `GmGmk*Init` (e.g. `GmGmkSwitchInit`) | grep the dump |
+| Blocker | Named function(s) in libfox.so | Address (arm64) | Status |
+|---------|-------------------------------|-----------------|--------|
+| **Matrix palette** (3 failed attempts) | `nnCalcMatrixPaletteNode`, `nnCalcMatrixPaletteMatrixList`, `SsDrawObjectMatrixPalette(NNS_OBJECT*, …, float(*)[16], …)` | `0x0060FB94`, `0x0060FA38`, `0x00640F88` | **SOLVED (beat 58)** |
+| **Spring** launch (flagged) | `GmGmkSpringInit` | `0x00563CB0` | open |
+| **Dash panel** (flagged) | `GmPlayerSpdSet`, `SsStatusIsDashPanelNow` | `0x005A86F0`, `0x0066A104` | open |
+| **Damage** | `GmPlySeqInitDamage` | `0x005B9368` | open |
+| **Every gimmick handler** | `GmGmk*Init` (e.g. `GmGmkSwitchInit`) | grep the dump | open |
 
 Also present, named: the whole SEGA **NN library** (`nnDrawObject`, `nnDrawElements`,
 `nnCalcMatrixPalette*`), player AI (`gm::ai::CPlayerEntity::*`), score/act-clear
-(`CScoreScore::releaseAct`), effects, special stages. **The recommended first move
-next session is `SsDrawObjectMatrixPalette` + `nnCalcMatrixPaletteNode` to close
-the matrix palette and get a real character on screen.** After that, map the 382
-`obj@ADDR` handlers to their real `GmGmk*` names by cross-referencing behaviour.
+(`CScoreScore::releaseAct`), effects, special stages.
+
+**The matrix palette is closed.** `nnCalcMatrixPaletteNode` walks the node tree
+and writes `palette[node.MatrixIndex] = InverseBind · world` per node; the vertex
+`UBYTE4` blend index selects into the per-list bone subset at vertex-descriptor
+`+0x18`, which holds the global palette slot. Recovered in `MatrixPalette.Build`
++ `TileMesh.Skinned`, verified against Episode II's own data (bind-pose palette is
+identity to 3e-6 on `SON_SPINMODEL`; 750/750 weighted lists in range corpus-wide).
+**A real, skinned, animated Sonic now renders in the desktop viewer** — idle,
+walk, run and roll. Full write-up in `docs/FORMAT-NN.md`. **The recommended next
+move is to map the 382 `obj@ADDR` handlers to their real `GmGmk*` names** and
+implement behaviours reading each `GmGmk*Init` for Episode II's real constants.
 
 Every constant this project flagged "Episode I's, not recovered" (spring 7.5,
 dash 13.5, damage knockback, roll threshold, 50-ring Super) can now be **read
@@ -68,13 +76,18 @@ flags with recovered values as each is confirmed.
 
 ## Where things stand
 
-**Overall ≈70% *decoding*, ~46% *rendering fidelity*** — two separate numbers, and
+**Overall ≈72% *decoding*, ~50% *rendering fidelity*** — two separate numbers, and
 keep them separate. Decoding measures data out of the files (phases 1-2 are near
 done); rendering fidelity measures pixels matching the original (phase 3's visible
 result), and it is lower because the renderer uses a stock unlit effect and the
 game's own shaders are parsed but not executed. Phase 1 ~95%, phase 2 ~99%, phase
-3 ~96%, phase 4 ~45%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
-**193 tests, all green. 93 commits.** Last session ended at beat 55.
+3 ~98%, phase 4 ~47%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
+**198 tests, all green.** Last committed at beat 57; beat 58 (matrix palette) is
+the current uncommitted work.
+
+**The matrix palette is solved (beat 58).** A real skinned Sonic renders in the
+viewer, posed and animated. The last-remaining structural blocker for character
+rendering is closed; see the ⭐ section above and `docs/FORMAT-NN.md`.
 
 **Assets — decoded and verified against the whole build:** the **AMB** container,
 **stage tile grids** (`.MP`/`.MD`), **placement tables** (`.EV`/`.DC`/`.RG`),
@@ -100,9 +113,10 @@ angles. **Rings** load, draw as the game's model, collect, and trigger Super at
 50. **Springs** launch, **dash panels** boost. The player **spawns at the act's
 real start marker (id 443)** and **crossing the goal panel (id 520) clears the
 act** — Zone 1 Act 1 is playable start to finish. Placed **gimmicks render and
-animate** (rigid models only). The **sky** draws from the `MAPFAR` archive.
-**Still missing:** damage/enemies/bosses, most of the 382 object behaviours, and
-skinned characters (the player is a blue rectangle).
+animate** (rigid models only). The **sky** draws from the `MAPFAR` archive. The
+**player is now the game's own skinned Sonic model** — 99-slot matrix palette,
+posed and animated from `SON_MTN` (idle / walk / run / roll), not a placeholder.
+**Still missing:** damage/enemies/bosses and most of the 382 object behaviours.
 
 **Behaviour constants that are Episode I's, flagged not-recovered:** spring
 impulse 7.5, dash-panel boost 13.5, roll threshold 0.5, Super at 50 rings. Each is
@@ -119,20 +133,26 @@ or the JVM will not start on this machine (small paging file). iOS needs a Mac.
 reference the Desktop head. Full Android build needs the SDK flags:
 `dotnet build src -p:AndroidSdkDirectory=C:/Android/sdk -p:JavaSdkDirectory=C:/Android/jdk`.
 
-## The next three things (now that libfox.so exists)
+## The next three things
 
-1. **The matrix palette — go straight at it via `libfox.so`.** Disassemble
-   `nnCalcMatrixPaletteNode` (`0x0060FB94`) and `SsDrawObjectMatrixPalette`
-   (`0x00640F88`) on arm64. They read the `NNS_OBJECT` node structure and produce
-   the `float(*)[16]` palette that the vertex `v2` `UBYTE4` index selects into.
-   This closes the one thing gating a real character model. Prior data-side dead
-   ends (beats 36/38/41) are now moot — read the code that names itself.
-2. **Map the 382 `obj@ADDR` handlers to `GmGmk*` names**, then implement
-   behaviours reading each `GmGmk*Init` for its real Episode II constants
-   (springs/dash panels are the template, but now with recovered values instead of
-   Episode I's flagged ones). `GmPlySeqInitDamage` (`0x005B9368`) gives damage.
+1. ~~**The matrix palette.**~~ **DONE (beat 58)** via `nnCalcMatrixPaletteNode`.
+   The palette is computed from the node tree, not stored; the per-list bone
+   subset lives at vertex-descriptor `+0x18`. `MatrixPalette.Build` +
+   `TileMesh.Skinned` render a real skinned, animated Sonic. See `docs/FORMAT-NN.md`.
+2. **Map the 382 `obj@ADDR` handlers to `GmGmk*` names** (now the top priority),
+   then implement behaviours reading each `GmGmk*Init` for its real Episode II
+   constants (springs/dash panels are the template, but now with recovered values
+   instead of Episode I's flagged ones). `GmPlySeqInitDamage` (`0x005B9368`) gives
+   damage, `GmGmkSpringInit` (`0x00563CB0`) the spring impulse.
 3. **The shader pipeline** — largest rendering-fidelity gap, still a fresh-session
    project (MonoGame runs MGFX not GLSL). Groundwork in beat 55.
+
+Also worth a pass while here: a proper **player-facing/scale transform** for the
+skinned model (the current viewer yaws ±90° toward travel and pins to the player
+position; the model's authored axis convention and per-character scale want
+confirming against the game), and **playing the matching animation from richer
+player state** (there are 309 motions in `SON_MTN` — jump, brake, spin-dash charge,
+Super — the viewer drives five).
 
 ## Paths
 
