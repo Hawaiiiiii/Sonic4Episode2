@@ -88,9 +88,17 @@ flags with recovered values as each is confirmed.
 
 ## ⭐ THE RETAIL BUILD IS HERE — and Beta 8 is almost exactly it
 
-The **Steam release** (App ID **203650**, built 2012-06-07) is downloaded to
+The **Steam release** (App ID **203650**) is downloaded to
 `C:\Users\DavidErikGarciaArena\Downloads\Sonic 4 - Episode 2 (Release)` (1.19 GB).
-Beta 8's `Sonic.exe` is dated 2012-04-17 — **seven weeks earlier**.
+
+**Timeline — and note what we actually have.** Beta 8 is an accidental Steam
+release: its `Sonic.exe` links **2012-04-17** and it went out on **2012-04-21**,
+about twelve days ahead of the retail gold master. The store release date is
+**2012-05-15**. But the build Steam serves *today* links **2012-06-07** — three
+weeks *after* launch — so what we hold is a **post-launch patched retail build**,
+not the day-one release. (Verified on the unpacked binary, so it is a genuine
+compile date and not a SteamStub artifact.) The original May gold master is a
+third build nobody here has; that only matters if we ever need day-one behaviour.
 
 **The question "are we reverse-engineering a beta?" is now answered, and the
 answer is very good: essentially no.** Hash comparison of all 800 game-data
@@ -112,6 +120,18 @@ Outside `G_*`, these also differ (menus and shell, not level data):
 `NNSTDSHADER/SHADER.AMB` (+52 KB in release — **worth a look, shaders are our
 biggest rendering gap**), `DEMO/MENU_CMN/*`, `DEMO/MULTIPLAY`, `DEMO/WORLDMAP*`,
 `MSG/ANC/MSG_ANC_TRIAL01_*` (beta trial text), `Launcher.exe`, `steam_api.dll`.
+
+**This corroborates the documented Beta 8 bugs, which is a good independent
+check.** The known beta faults are all *code*-side, not data: Sylvania Castle
+(Zone 1) textures failing to load, lighting missing at high resolutions, and a
+leftover debug cheat that grants 99 rings. Our hashes say Zone 1's data is
+byte-identical to retail — so those were loader and shader bugs, not different
+assets, exactly as the differing `Sonic.exe` and `SHADER.AMB` would predict. An
+outside account of the build and our own measurement agree without having been
+fitted to each other.
+
+The **Zone 2 collision change is a new finding**, not on any published list of
+beta differences.
 
 **Action item:** re-verify Zone 2 against the release `*_ATTR.AMB` files before
 trusting any Zone 2 collision work. Everything else needs no re-targeting.
