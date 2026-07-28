@@ -3394,3 +3394,51 @@ Whole solution including Android · **175 tests** — green.
 3. Play a chosen animation rather than always the first.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 50 — The first object that does something
+
+**2026-07-28 08:56 CEST (UTC+02:00)**
+
+Springs work. A spring is a trigger box built from the placements whose catalogue
+name is `Spring`; a player entering it is launched, and it re-arms when they
+leave, so one touch is one launch rather than sixty.
+
+### The impulse is flagged, not faked
+
+Episode I launches at `7.5 + 1.5 * intensity` px/frame. I read Episode II's
+spring handler at `0x004F7570` before borrowing that: its reachable constants are
+timing values — 1/24, 1/12, 0.164, 60 — and **no 7.5 anywhere in it or its
+callees**, so Episode II's launch speed arrives some way not yet traced.
+`Springs.ImpulsePixels` therefore carries Episode I's base with the same
+not-recovered flag as `RollThreshold`. Direction is up-only until the placement
+flag mapping is recovered — a wrong guess would fire players into walls.
+
+### The bug the test caught
+
+`BounceIsNotAJump` failed on first run, and the failure was real: the
+jump-release cut armed on *any* rise, so a spring launch with the button up read
+as a released jump and got **double gravity**. Springs would have felt weak
+forever, for an invisible reason. The cut is now scoped to rises that came from
+the jump button.
+
+That is the second feel-bug a behaviour test has caught before it shipped — the
+launch-frame friction in beat 31 was the first. Behaviour tests earn their keep.
+
+### Regression
+
+Whole solution including Android · **181 tests** — green.
+
+### Progress
+
+**≈70%.** Phase 4 ~43%.
+
+### Next
+
+1. Trace how Episode II's spring gets its launch speed — probably the placement
+   parameter, which would close intensity and direction at once.
+2. More behaviours: dash panel (`Speed` ids), item boxes.
+3. The matrix palette, fresh session.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
