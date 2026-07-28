@@ -4170,3 +4170,79 @@ moved from OPEN (beat 62) to recovered-and-cross-checked.
 3. The shader pipeline.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 64 — The material model, first cut: real normals, recovered colours, lighting
+
+**2026-07-29 01:48 CEST (UTC+02:00)**
+
+First beat of the material-model work the iOS shader source made legible. Three
+things the renderer had been throwing away are now read and used.
+
+### The material colour block, decoded
+
+`NnMaterial.ColourOffset` had been parsed since beat 33 and never read. It points
+at a block of `u32 count` then that many RGBA quads, and the census is decisive:
+**every one of the build's 9,767 materials has exactly count 2** — no exceptions.
+
+Which two took evidence rather than assumption. Colour[1] is **pure white on 87.6%**
+while its **alpha varies meaningfully** (1.0 on 9,154, but 0.0, 0.25, 0.41, 0.6 and
+0.98 all occur) — white-with-live-alpha is the diffuse signature, "show the texture
+unchanged, and here is the transparency." Colour[0] clusters hard on uniform grey
+(0.3,0.3,0.3 on 4,859) or black (2,792), which is an ambient *level*, not a surface
+colour. So **colour[0] is ambient, colour[1] diffuse** — and that matches
+`nngluFrontMaterialDiffuse` in the engine's own shader interface.
+
+### Normals were being discarded
+
+`NnVertexList` had `ReadPositions` and `ReadTexCoords` but no `ReadNormals`, and
+the renderer fed **`Vector3.Backward` to every single vertex**. Every surface caught
+identical light by construction. Added `ReadNormals`, plumbed normals through
+`TileMesh` and `StageBatch`, and the renderer now uses the model's own.
+
+I had assumed a side-scroller's tiles would be flat camera-facing quads, which
+would make lighting pointless — an old note in `RESUME-HERE.md` says exactly that.
+**Checked instead of assuming, and it is wrong for the real geometry:** one tile
+carries **60 distinct normals across 436 vertices**, clustered around
+(0.5, 0.9, -0.1). The tiles are beveled, so lighting genuinely varies across them.
+
+### Lighting on
+
+`BasicEffect` moves from `LightingEnabled = false` to one directional light over a
+scene ambient of **0.30 grey — the value 4,859 materials carry**, the commonest in
+the build by a wide margin, so unlit faces sit where the artists put them rather
+than at black.
+
+### Honest about the visible result
+
+This is **infrastructure with a modest visible delta**, not the fidelity jump. The
+capture (`analysis/lit-stage.png`) shows the act lit and tonally varied rather than
+uniformly flat, but it is not a transformation. The large visible win is still
+ahead, in the parts of the model not yet built: the decal / modulate / add /
+opacity texture stages, texture matrices, and the real light parameters rather than
+my chosen direction. I would rather land the plumbing and say so than claim a
+number the screenshot does not support.
+
+The light *direction* is mine, not recovered — flagged. `nngluParallelLightDirection`
+is fed by the engine at runtime and is a capture-time value, which is exactly what
+the staged apitrace tooling is for.
+
+### Regression
+
+Whole solution · **213 tests** — green (3 new, all against the game's own archives:
+the two-colour block, that normals are unit-length and varied, and that TileMesh
+emits one normal per vertex).
+
+### Progress
+
+**≈80% decoding · ~55% rendering fidelity.** Phase 3 ~98%, phase 4 ~60%.
+
+### Next
+
+1. The texture stages — decal, modulate, add, opacity. This is where the look is.
+2. apitrace capture to recover the real light parameters and per-material
+   permutation binding, replacing my chosen light direction with the engine's.
+3. Mobile validation; damage and enemies.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus

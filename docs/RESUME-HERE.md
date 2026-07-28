@@ -153,7 +153,7 @@ done); rendering fidelity measures pixels matching the original (phase 3's visib
 result), and it is lower because the renderer uses a stock unlit effect and the
 game's own shaders are parsed but not executed. Phase 1 ~95%, phase 2 ~99%, phase
 3 ~98%, phase 4 ~60%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
-**210 tests, all green.** Last beat: 63, committed and pushed.
+**213 tests, all green.** Last beat: 64, committed and pushed.
 
 **Recent structural progress (beats 58-61):**
 
@@ -413,8 +413,11 @@ this machine. It handled the binary survey (8,007 functions via `afl`).
   laid out side by side in an authoring scene. `stageview.py` re-centres each
   model on its bounding box before instancing. This reconstructs the engine's
   transform rather than reproducing it; correct silhouette, not proven exact.
-- Rendering note: lambert shading is useless here because nearly every face
-  points at the camera in a side-scroller. Colour by tile id instead.
+- Rendering note (**superseded, beat 64**): this used to say lambert shading is
+  useless because every face points at the camera. Measured and false for the real
+  geometry — one Zone 1 tile carries **60 distinct normals across 436 vertices**.
+  The tiles are beveled; lighting does vary. The claim held only for the flat
+  orthographic preview the Python tool draws.
 
 - **SHADERS ARE TRANSLATABLE** (`docs/FORMAT-SHADER.md`, `tools/shader.py`).
   All **1,843 parse cleanly, 0 failures** — 922 `ps_3_0`, 921 `vs_3_0`, every one
