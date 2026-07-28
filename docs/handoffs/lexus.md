@@ -4005,3 +4005,57 @@ Whole solution · **202 tests** — green (1 new pinning the recovered constants
 3. The shader pipeline.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 61 — The named classes fill the stage with gimmick models
+
+**2026-07-28 21:44 CEST (UTC+02:00)**
+
+Beat 59 named every object; this puts those names to work in the viewer. The
+model resolver was fed only `ObjectCatalog.NameOf` — the scraped *asset* name,
+which 116 ids have and which often is not the archive's spelling. Feeding it the
+recovered engine *class* first (679 ids carry one) resolves far more.
+
+Zone 1 Act 1 goes from **1 object model placed to 126** — ten distinct animated
+gimmick types. The matches are exact, not fuzzy: `Sconce` → `EP2_GMK_SCONCE`
+(the castle torches, 52 of them, which the asset name `CandleStick` could never
+have found), `Spring` → `SPRING` (24), `Item` → `ITEM` (the item boxes, 6),
+`Needle` → `NEEDLE` (6). `ObjectModels.Resolve` still only returns a confirmed
+match — exact stem, or a single unambiguous abbreviation — so trying the class in
+addition to the asset name can only *add* correct models, never a wrong one. The
+change is that small: try `ClassOf` then `NameOf` per placement.
+
+The stage now reads as Sylvania Castle furnished — torches lining the brickwork,
+springs and item boxes in place — rather than bare terrain with one lone gimmick.
+
+### On the direction chase, recorded so it is not re-attempted blind
+
+I traced the spring and dash-panel *direction* to the point of knowing it is
+**zone-dependent and not in the placement data**. Both handlers derive their
+direction/variant from a runtime mode (`[x23,0x28]` compared against 27/28 — very
+likely the zone) crossed with the object id via a range dispatch: dash panels
+`id - {93, 511, 696}` depending on that mode, springs a larger id-range table.
+The velocity data itself is recovered — dash panel `(±13.5, 0)` / `(0, ±13.5)`
+table at `0x0096C658`, spring A16 angle table at `0x00961D34` — but the same id
+means different things in different zones, so wiring a global id→direction map
+would be wrong. Left as the documented next step rather than a guess.
+
+### Regression
+
+Whole solution including Android · **202 tests** — green. Verified live: the
+viewer reports 126 models placed, 533/533 placements identified.
+
+### Progress
+
+**≈77% decoding · ~52% rendering fidelity** (the furnished stage is a real
+visible gain). Phase 4 ~57%.
+
+### Next
+
+1. The zone-mode that selects gimmick direction — decode it, then springs and
+   panels fire in their eight real directions.
+2. More behaviours by class: item boxes give a power-up, breakables break.
+3. The shader pipeline.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus

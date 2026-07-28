@@ -76,15 +76,15 @@ flags with recovered values as each is confirmed.
 
 ## Where things stand
 
-**Overall ≈76% *decoding*, ~50% *rendering fidelity*** — two separate numbers, and
+**Overall ≈77% *decoding*, ~52% *rendering fidelity*** — two separate numbers, and
 keep them separate. Decoding measures data out of the files (phases 1-2 are near
 done); rendering fidelity measures pixels matching the original (phase 3's visible
 result), and it is lower because the renderer uses a stock unlit effect and the
 game's own shaders are parsed but not executed. Phase 1 ~95%, phase 2 ~99%, phase
-3 ~98%, phase 4 ~55%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
-**201 tests, all green.** Last beat: 59, committed and pushed.
+3 ~98%, phase 4 ~57%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
+**202 tests, all green.** Last beat: 61, committed and pushed.
 
-**Two structural blockers closed in the last two beats:**
+**Recent structural progress (beats 58-61):**
 
 - **The matrix palette (beat 58).** A real skinned Sonic renders in the viewer,
   posed and animated. See the ⭐ section above and `docs/FORMAT-NN.md`.
@@ -95,6 +95,14 @@ game's own shaders are parsed but not executed. Phase 1 ~95%, phase 2 ~99%, phas
   were wired to ids Zone 1 Act 1 never places, so the act had **zero springs** and
   six item monitors acting as dash panels. It now loads 24 springs and 11 panels.
   **Match on `ObjectCatalog.Class`, never on `Name`.**
+- **Gimmick constants recovered (beat 60).** Dash-panel boost 13.5 read from
+  Episode II's own direction table; spring 8-direction angle table and 9.0
+  vertical cap recovered. See `docs/FORMAT-EVENTS.md`.
+- **The stage is furnished (beat 61).** Feeding the model resolver the class name
+  takes Zone 1 Act 1 from **1 gimmick model to 126** — torches, springs, item
+  boxes, needles, all exact-matched. **Gimmick direction is zone-dependent** (a
+  runtime mode crossed with id ranges), not in the placement data; decoding that
+  mode is the next step to make springs/panels fire in eight directions.
 
 **Assets — decoded and verified against the whole build:** the **AMB** container,
 **stage tile grids** (`.MP`/`.MD`), **placement tables** (`.EV`/`.DC`/`.RG`),
