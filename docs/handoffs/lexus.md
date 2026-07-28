@@ -3856,3 +3856,86 @@ record of what it was *not*.
 3. The shader pipeline, still a fresh-session project.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 59 — Every object in the game has its real name, and two behaviours were on the wrong ids
+
+**2026-07-28 20:41 CEST (UTC+02:00)**
+
+The 382 `obj@ADDR` handlers now have names — not guessed, read from the linker.
+And finding them exposed a bug that had been invisible for two beats.
+
+### Finding the table
+
+The Windows dispatch table (`Sonic.exe:0x007031C8`) is indexed by object id but
+stripped, so ids only ever had names scraped from nearby string immediates. The
+Android build has the same table with every slot named. A table of function
+pointers is a table of relocation sites, so collecting `R_AARCH64_ABS64` and
+`R_AARCH64_RELATIVE` entries and mapping each site to its symbol recovers it —
+`tools/dispatch.py`.
+
+**Anchoring it is the part that makes this a reading rather than a guess.** Beat
+52 identified two ids from placement statistics alone, with no binary involved:
+id 443 is the act start (once per act, 3% of the way in) and id 520 the goal
+(once per act, 86%). Exactly one alignment of the Android table puts
+`GmGmkStartInit` on 443 **and** `GmGmkGoalPanelInit` on 520 simultaneously. Two
+unrelated linker symbols landing on two statistically-derived ids is not a
+coincidence one can arrange.
+
+Cross-checks all held: **533/533** placements in Zone 1 Act 1 resolve, and the
+names describe Sylvania Castle — `WaterArea`, `BubbleManager`, `Sconce`, and
+`GmEneEp2HariSenbo`, *harisenbo* being the pufferfish. Across all 30 acts,
+**13,563 of 13,588 placements (99.8%)** are named. The 25 that are not are ids
+669-671 in `G_ZONEF`, whose slots *neither* build fills; they stay not recovered.
+
+### The bug this found
+
+`Springs` matched placements on the scraped asset name `"Spring"` — **id 295**,
+which `GmGmkTrumpRoad` actually occupies and which **Zone 1 Act 1 never places**.
+So the act had *zero* springs, and had since beat 50. `DashPanels` matched
+`"Speed"`, catching ids 455/457/458 — **item monitors** — so six item boxes were
+boosting the player. The real ids are springs 70-79/91/92/480/481/483 and dash
+panels 93-96/511-514.
+
+Zone 1 Act 1 now loads **24 springs and 11 dash panels**, where it loaded 0 and 6
+wrong ones. Behaviours match on `ObjectCatalog.Is(id, "Spring")` now.
+
+The lesson is the honest one: unit tests on synthetic placements passed the whole
+time, because they built their fixtures from the same wrong catalogue. Nothing
+tested that the real act contained any. The engine status line now reports spring
+and dash-panel counts, so a behaviour wired to an unplaced id is visible.
+
+### Two names, two meanings — both kept
+
+`Entry.Name` (asset, from the Windows scrape) and `Entry.Class` (engine class,
+from the linker) describe different things and are both true. Id 312 loads a
+`CandleStick` and its class is `LightMask`; id 10's asset is `Halogen` and its
+class `Haro`. Where they overlap they agree — 132 is `WaterSlider` on both sides,
+182 is `Gear` — which is the cross-check. **Match on `Class`.**
+
+The enemy roster fell out for free: ids 0-15 are `HariSenbo`, `Motora`, `Sting`,
+`Gabu`, `Mereon`, `Mogu`, `Gardon`, `Kani`, `Uniuni`. And the single most-placed
+object in the game, previously nameless, is `CamMoveDirPrio` — a camera direction
+hint, which is why it is everywhere.
+
+### Regression
+
+Whole solution including Android · **201 tests** — green (3 new). 679 of 714 ids
+carry a recovered class. `ObjectCatalog` regenerates with `tools/dispatch.py
+csharp`.
+
+### Progress
+
+**≈76% decoding · ~50% rendering fidelity.** Phase 4 ~55% — the object work is
+no longer blocked on identification, only on implementation.
+
+### Next
+
+1. Implement behaviours by class, now that every class is named — item boxes
+   (`Item`), breakables (`BreakObj`, `BreakWall_*`), `Needle`, `WaterArea`.
+2. Read each `GmGmk*Init` for Episode II's real constants and retire the
+   remaining "Episode I's, not recovered" flags (spring 7.5, dash 13.5).
+3. The shader pipeline.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
