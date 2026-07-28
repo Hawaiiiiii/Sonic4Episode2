@@ -3442,3 +3442,50 @@ Whole solution including Android · **181 tests** — green.
 3. The matrix palette, fresh session.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 51 — Dash panels, and the friction window they need
+
+**2026-07-28 09:32 CEST (UTC+02:00)**
+
+Second behaviour: the `Speed` objects are dash panels. A panel sets ground speed
+to a boost, never slowing a faster player — the `SpeedUp` asymmetry again — and
+suspends friction for a short window so the boost is not immediately eaten.
+
+### The numbers, and where they stand
+
+Episode I's panel sets **13.5 px/frame** with **12 no-friction frames**
+(`GmPlySeqInitDashPanel`, `55296`/`49152` FX32). Before borrowing them I searched
+Episode II: **13.5 exists in exactly one `f32` and one `f64` in the whole image**,
+referenced from player-sequence code at `0x535C21`/`0x535D9A`. Corroborating —
+but the referencing code is curve arithmetic, not a plain store into the player's
+speed, so it does not *prove* the panel value. Both numbers ship flagged
+not-recovered, like the spring's.
+
+Direction follows current travel, facing at rest, until the placement flag
+mapping is recovered. A reverse gotcha panel will boost the wrong way **visibly**,
+which is the failure mode to prefer.
+
+### The engine piece
+
+`Player.DashBoost` plus a `_noFrictionFrames` counter that the ground-drag branch
+respects. The suspension needed real plumbing rather than a hack — friction is
+one branch of the input handling, and the window has to survive frames with no
+input without also suppressing the player's own braking.
+
+### Regression
+
+Whole solution including Android · **187 tests** — green.
+
+### Progress
+
+**≈70%.** Phase 4 ~44%. Three behaviours live: rings, springs, dash panels.
+
+### Next
+
+1. Item boxes (`ITEM` ships in `G_COM`) and the goal panel (`GOAL_PNL`).
+2. Trace the spring/panel speeds properly — likely the placement parameter.
+3. The matrix palette, fresh session.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
