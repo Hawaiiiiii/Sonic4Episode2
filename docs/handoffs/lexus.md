@@ -3680,3 +3680,53 @@ Whole solution including Android · **193 tests** · 5,727 NN containers — gre
 3. More object behaviours.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 56 — A fully-symbolized second oracle
+
+**2026-07-28 17:20 CEST (UTC+02:00)**
+
+At the very end of the session, the director surfaced
+`C:\Users\DavidErikGarciaArena\Downloads\[ANDROID] Sonic The Hedgehog 4 Episode II`
+— the **official Android port of Episode II, a developer build** (from
+debugging.games). Its `libfox.so` (aarch64 and arm32, NDK r21d, clang 9) is marked
+stripped but **retains its entire dynamic symbol table: 24,263 named C++
+functions.**
+
+This is the single most valuable thing that could have appeared for this project.
+The Windows `Sonic.exe` is stripped, which is why every hard task this session was
+"read the binary the way the spin dash was." This ARM build is the same game with
+**every function named**, so it is a second behavioural oracle far richer than the
+already-decisive Episode I decompilation.
+
+**It names every open blocker directly:**
+
+- Matrix palette (three failed attempts, beats 36/38/41): `nnCalcMatrixPaletteNode`
+  `0x0060FB94`, `nnCalcMatrixPaletteMatrixList` `0x0060FA38`, and
+  `SsDrawObjectMatrixPalette(NNS_OBJECT*, …, float(*)[16], …)` `0x00640F88` — the
+  `float(*)[16]` is literally the palette. Disassemble and the format falls out.
+- `GmGmkSpringInit` `0x00563CB0`, `GmPlySeqInitDamage` `0x005B9368`,
+  `GmPlayerSpdSet` `0x005A86F0` — every constant I flagged "Episode I's, not
+  recovered" is now readable from Episode II's own code.
+- The 382 `obj@ADDR` handlers map to real `GmGmk*` class names.
+- The whole SEGA NN library is named, which retroactively confirms the beat 22/35/40
+  structural findings from the horse's mouth.
+
+Saved `analysis/libfox-symbols.txt` (gitignored — binary-derived, oracle only) and
+wrote the discovery to the top of `docs/RESUME-HERE.md` with the addresses. Did
+**not** start the disassembly — that is the fresh session's first move, and the
+recommended one is the matrix palette, which gets a real character on screen.
+
+Clean-room doctrine holds: the `.so` is an oracle, not a source; we read it, write
+our own code, verify against Episode II's own data.
+
+### State handed off
+
+**≈70% decoding · ~46% rendering fidelity · 193 tests · 93 commits.** All pushed,
+tree clean. The next session should read the ⭐ section at the top of
+`docs/RESUME-HERE.md` first. This changes the trajectory of everything remaining:
+the reverse engineering just went from "hard, one function at a time" to "named,
+disassemble the function that says what it does."
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus

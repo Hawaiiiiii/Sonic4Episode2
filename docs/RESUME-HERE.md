@@ -3,6 +3,45 @@
 Single source of truth for where this project stands. Update at the end of every
 working session. If chat history is gone, start from this file.
 
+## ⭐ READ FIRST — a fully-symbolized second oracle appeared (end of last session)
+
+`C:\Users\DavidErikGarciaArena\Downloads\[ANDROID] Sonic The Hedgehog 4 Episode II`
+is the **official Android port of Episode II**, a **developer build** (from
+debugging.games) whose `libfox.so` **retains its entire symbol table — 24,263
+named C++ functions.** The Windows `Sonic.exe` this project has been fighting is
+stripped; this ARM build names everything. It is the same game, so its data
+constants and structure layouts are the same, and it is used exactly like Episode
+I's decompilation: a **behavioural oracle** — read it, write our own code, verify
+against Episode II's own bytes. Clean-room doctrine still applies; the `.so` and
+its symbol dump stay gitignored.
+
+- Binaries: `[ANDROID] .../arm64-v8a/libfox.so` and `armeabi-v7a/libfox.so`
+  (aarch64 and arm32, NDK r21d, clang 9). Use rizin (installed).
+- Symbol dump saved to `analysis/libfox-symbols.txt` (gitignored). Regenerate:
+  `rizin -q -c "is" "<path>/arm64-v8a/libfox.so"`.
+
+**This directly unblocks every open item.** Named functions to disassemble:
+
+| Blocker | Named function(s) in libfox.so | Address (arm64) |
+|---------|-------------------------------|-----------------|
+| **Matrix palette** (3 failed attempts) | `nnCalcMatrixPaletteNode`, `nnCalcMatrixPaletteMatrixList`, `SsDrawObjectMatrixPalette(NNS_OBJECT*, …, float(*)[16], …)` | `0x0060FB94`, `0x0060FA38`, `0x00640F88` |
+| **Spring** launch (flagged) | `GmGmkSpringInit` | `0x00563CB0` |
+| **Dash panel** (flagged) | `GmPlayerSpdSet`, `SsStatusIsDashPanelNow` | `0x005A86F0`, `0x0066A104` |
+| **Damage** | `GmPlySeqInitDamage` | `0x005B9368` |
+| **Every gimmick handler** | `GmGmk*Init` (e.g. `GmGmkSwitchInit`) | grep the dump |
+
+Also present, named: the whole SEGA **NN library** (`nnDrawObject`, `nnDrawElements`,
+`nnCalcMatrixPalette*`), player AI (`gm::ai::CPlayerEntity::*`), score/act-clear
+(`CScoreScore::releaseAct`), effects, special stages. **The recommended first move
+next session is `SsDrawObjectMatrixPalette` + `nnCalcMatrixPaletteNode` to close
+the matrix palette and get a real character on screen.** After that, map the 382
+`obj@ADDR` handlers to their real `GmGmk*` names by cross-referencing behaviour.
+
+Every constant this project flagged "Episode I's, not recovered" (spring 7.5,
+dash 13.5, damage knockback, roll threshold, 50-ring Super) can now be **read
+from Episode II's own code** by disassembling the named function. Replace the
+flags with recovered values as each is confirmed.
+
 ## Where things stand
 
 **Overall ≈70% *decoding*, ~46% *rendering fidelity*** — two separate numbers, and
@@ -56,24 +95,20 @@ or the JVM will not start on this machine (small paging file). iOS needs a Mac.
 reference the Desktop head. Full Android build needs the SDK flags:
 `dotnet build src -p:AndroidSdkDirectory=C:/Android/sdk -p:JavaSdkDirectory=C:/Android/jdk`.
 
-## The next three things
+## The next three things (now that libfox.so exists)
 
-1. **The matrix palette** — the one thing gating skinned characters (a real Sonic
-   instead of a blue rectangle). Weights and blend indices are decoded; the
-   indices are palette-relative, never above 15, so what remains is the ≤16-entry
-   table mapping them to nodes. **Three attempts documented as dead ends** in beats
-   36/38/41: mesh-set `+0x24` is a sequential ordinal, the sub-object trailing
-   dwords don't fit, no static vertex declarations exist. Beat 39: the shaders say
-   `v0` position, `v1` weights, `v2` `UBYTE4` index, 4 constant registers per bone.
-   Next attempt: the runtime vertex-declaration builder, or the draw path that
-   uploads the palette to `SetVertexShaderConstantF`.
-2. **More object behaviours** — the bulk of the remaining 30%. 382 handlers, one
-   at a time. Pattern established by springs/dash panels: read Episode II's handler
-   first, borrow Episode I's shape only when Episode II's own value isn't traceable,
-   and flag it. Item boxes (`ITEM` in `G_COM/GMK`) and damage are good next targets.
-3. **The shader pipeline** — largest rendering-fidelity gap, but a fresh-session
-   project: MonoGame runs MGFX not GLSL, so it is not a bounded change. Groundwork
-   in beat 55: 921 vs_3_0 + 922 ps_3_0, opcode census, 126 palette-skinning shaders.
+1. **The matrix palette — go straight at it via `libfox.so`.** Disassemble
+   `nnCalcMatrixPaletteNode` (`0x0060FB94`) and `SsDrawObjectMatrixPalette`
+   (`0x00640F88`) on arm64. They read the `NNS_OBJECT` node structure and produce
+   the `float(*)[16]` palette that the vertex `v2` `UBYTE4` index selects into.
+   This closes the one thing gating a real character model. Prior data-side dead
+   ends (beats 36/38/41) are now moot — read the code that names itself.
+2. **Map the 382 `obj@ADDR` handlers to `GmGmk*` names**, then implement
+   behaviours reading each `GmGmk*Init` for its real Episode II constants
+   (springs/dash panels are the template, but now with recovered values instead of
+   Episode I's flagged ones). `GmPlySeqInitDamage` (`0x005B9368`) gives damage.
+3. **The shader pipeline** — largest rendering-fidelity gap, still a fresh-session
+   project (MonoGame runs MGFX not GLSL). Groundwork in beat 55.
 
 ## Paths
 
