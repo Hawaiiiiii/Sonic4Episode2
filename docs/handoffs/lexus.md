@@ -2915,3 +2915,65 @@ Six of the new tests run against the installed game and skip cleanly without it.
 3. Damage, which needs its code read the way the spin dash was.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 41 — Two palette candidates eliminated
+
+**2026-07-28 12:41 CEST (UTC+02:00)**
+
+Short beat, and a deliberately unglamorous one. Chasing the index-to-node table
+and ruling out where it is not.
+
+**Mesh set `+0x24`** — the one field of the mesh set record still unread — is a
+plain sequential ordinal. Sonic's eighteen mesh sets read `0 1 2 ... 17` exactly.
+It identifies the mesh set and points at nothing.
+
+**The subobject's trailing dwords** give `5` and an offset to `0, 1, 2, 3, 4`
+immediately before the subobject record. Beat 38 already found the corpus-wide
+counts failing, and now there is a second reason it cannot be right: **vertex blend
+indices reach 15**, and a five-entry palette cannot serve them.
+
+**There are no static vertex declarations either.** Searching `Sonic.exe` for the
+`D3DDECL_END()` sentinel finds **zero**, so declarations are built at runtime from
+the format word rather than sitting in a table I could read.
+
+### What the target actually looks like
+
+Worth writing down now that it is this well constrained:
+
+- **99 palette entries on Sonic across 18 mesh sets** — roughly 5 or 6 each.
+- Entries are **node indices in 0..108**.
+- Vertex indices never exceed **15**, so no single palette holds more than 16.
+
+A structure of that shape, in a file this project already parses completely, is
+not hiding in many places.
+
+### On stopping here
+
+I could keep grinding. But three beats have now gone into the palette, the last
+two produced eliminations rather than answers, and the honest read is that this
+wants a fresh look rather than more of the same afternoon — probably at the
+runtime declaration builder, which is the one thing that must know the answer and
+which I have not yet located in code.
+
+Everything either side of it is done: the tree resolves, the weights and indices
+decode, and the shaders say exactly what shape the answer takes.
+
+### Regression
+
+Whole-solution build · **146 tests** — green.
+
+### Progress
+
+**≈66%.** Unchanged.
+
+### Next
+
+1. **The runtime vertex declaration builder** in `Sonic.exe` — find the code that
+   turns a format word into `D3DVERTEXELEMENT9`s, and the palette setup will be
+   beside it.
+2. The Android head, once the SDK licence is accepted.
+3. Damage, which needs its code read the way the spin dash was.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
