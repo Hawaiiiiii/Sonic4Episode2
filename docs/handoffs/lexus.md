@@ -3348,3 +3348,49 @@ real-gimmick animation check.
 3. Object behaviours for the resolved set.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 49 — Animated gimmicks in the live viewer
+
+**2026-07-28 08:14 CEST (UTC+02:00)**
+
+Beat 48 proved the animation pipeline in Core. This puts it on screen.
+
+`TileMesh.Posed` builds a model's geometry with each mesh set transformed by its
+node's world matrix — the animated twin of `TileMesh.From`, which re-centres on
+the bbox. The viewer now loads each placed gimmick's model *and* its first motion
+from the `_MTN` archive beside it, and rebuilds the object geometry every frame
+from the posed nodes. A static act pays nothing — the rebuild only runs when
+something actually animates.
+
+**Mad Gear Zone Act 2 is the demonstration**: 46 placed objects, 2 of them
+animated (propellers and burners), spinning from their own model and motion data.
+The stage reads as Mad Gear's yellow industrial machinery, and the gimmicks turn.
+
+### An honest limitation on the verification
+
+I tried to capture two frames a moment apart and diff them to prove the rotation
+advances. The two-window capture stalled — running two MonoGame windows in
+sequence in this environment hangs on the second — so the frame-diff proof did not
+land. What *is* proven: the Core tests show `AnimatedPose` returns different
+transforms at different frames, the viewer reports the objects as `animated` and
+rebuilds their geometry every frame, and the single captured frame shows them
+rendered from their real models. I would rather say the diff did not run than
+imply a verification I do not have.
+
+### Regression
+
+Whole solution including Android · **175 tests** — green.
+
+### Progress
+
+**≈70%.** Phase 4 ~42%.
+
+### Next
+
+1. The matrix palette — fresh session.
+2. Object behaviours: a spring that springs, a propeller that lifts.
+3. Play a chosen animation rather than always the first.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
