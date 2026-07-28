@@ -30,17 +30,29 @@ reimplementation / reverse-engineered source port, and it is the stronger claim.
 ## ⭐ READ FIRST — a fully-symbolized second oracle appeared (end of last session)
 
 `C:\Users\DavidErikGarciaArena\Downloads\[ANDROID] Sonic The Hedgehog 4 Episode II`
-is the **official Android port of Episode II**, a **developer build** (from
-debugging.games) whose `libfox.so` **retains its entire symbol table — 24,263
-named C++ functions.** The Windows `Sonic.exe` this project has been fighting is
-stripped; this ARM build names everything. It is the same game, so its data
-constants and structure layouts are the same, and it is used exactly like Episode
-I's decompilation: a **behavioural oracle** — read it, write our own code, verify
+is the **official Android port of Episode II**, whose `libfox.so` **names ~24,000
+C++ functions** where the Windows `Sonic.exe` names none. It is the same game, so
+its structures and constants line up, and it is used exactly like Episode I's
+decompilation: a **behavioural oracle** — read it, write our own code, verify
 against Episode II's own bytes. Clean-room doctrine still applies; the `.so` and
 its symbol dump stay gitignored.
 
+**📖 Full explanation — what a `.so` is, the ELF anatomy, and how relocations and
+the PLT/GOT cracked specific blockers — is in [`docs/ORACLES.md`](ORACLES.md).**
+
 - Binaries: `[ANDROID] .../arm64-v8a/libfox.so` and `armeabi-v7a/libfox.so`
   (aarch64 and arm32, NDK r21d, clang 9). Use rizin (installed).
+- **Precisely:** the file has **no `.symtab`** — it is conventionally stripped.
+  The names live in `.dynsym` because the engine was built without
+  `-fvisibility=hidden`, so nearly every function was exported. Practical effect
+  is the same; the wording matters when reasoning about what else it might hold.
+- **Unexploited: `armeabi-v7a` names ~5,200 MORE functions** (29,129 vs 23,890) —
+  arm32 inlines less. If a function is anonymous in arm64, check arm32 before
+  giving up. The two builds also disambiguate struct layouts, since pointer-size
+  differences shift field offsets by known amounts.
+- **Unexploited: 45 complete GLSL ES shader programs** sit in `.rodata` (17
+  vertex, 28 fragment, compiled at runtime — no MojoShader, so SEGA hand-ported
+  them). An official reference for what our SM3.0 translation should produce.
 - Symbol dump saved to `analysis/libfox-symbols.txt` (gitignored). Regenerate:
   `rizin -q -c "is" "<path>/arm64-v8a/libfox.so"`.
 
