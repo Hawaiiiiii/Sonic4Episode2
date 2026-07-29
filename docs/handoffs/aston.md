@@ -591,3 +591,104 @@ Wagata, Yondaime! Signed sincerely by your dear Aston
 - **OPEN** — HariSenbo is next.
 
 Wagata, Yondaime! Signed sincerely by your dear Aston
+
+---
+
+## HariSenbo — classic pufferfish enemy
+
+**2026-07-29 13:59 CEST (UTC+02:00)**
+
+### Placement evidence
+
+- **VERIFIED** — the ordered behavior is exactly **145 class `HariSenbo`
+  placements across eleven acts**: 3/11/29 in Episode I Zone 1 acts 1-3,
+  3/14/15 in Zone 2 acts 1-3, 20/12 in Zone 3 acts 1-2, and 20/9/9 in Zone 4
+  acts 1-3.
+- **VERIFIED** — id 0 accounts for 134 placements and id 15 for 11. Every
+  placement has flags zero and parameter zero. All id-0 raw fields are zero.
+  Id 15 always has height 1; its widths are 1 on seven placements, 2 on two and
+  3 on two.
+- **VERIFIED** — Episode II's newer class `Ep2HariSenbo` is separate: ids 380
+  and 381 account for 74 placements across eight acts. Construction uses
+  `ObjectCatalog.Is(..., "HariSenbo")`, so none of those newer pufferfish are
+  mounted by this behavior.
+
+### Episode II oracle
+
+- **VERIFIED** — Beta 8's stripped PC handler begins at `0x0047C1C0`; the
+  symbolized arm64 equivalent is `GmEneHariSenboInit` at `0x0049C780`. Both
+  select the static model/state for id 0 and the cycling red state for the
+  nonzero id used by id 15.
+- **VERIFIED** — both initializers assign the default attack rectangle
+  `[-12,-12,12,12]`, defense rectangle `[-22,-22,22,22]`, and a second
+  `[-22,-22,22,22]` rectangle that this core behavior does not need.
+  `GmEnemyCreateWork` installs `GmEnemyDefaultDefFunc` on rect 0 and
+  `GmEnemyDefaultAtkFunc` on rect 1; the arm64 GOT relocations at `0x00B96168`
+  and `0x00B95A98` identify those callbacks directly.
+- **VERIFIED** — the red wait uses raw width times **30 frames** and its
+  inflated duration uses raw height times 30, each falling back to **300**
+  when zero. PC constants at `0x006F8014` and `0x00744098` read as 60.0 and
+  300.0; the state machine uses the former for its windup.
+- **VERIFIED** — after the windup, rect-0 defense power becomes 2 while the
+  attack rectangle remains ±12. When action 3 ends, rect 1 expands to ±24;
+  after the height-selected inflated duration it shrinks to ±12 and defense
+  power returns to zero.
+- **VERIFIED** — Beta 8's own `G_EP1COM/ENE/EP1_ENE_HARI_MTN.AMB` contains four
+  motions. Action 3 is `ENE_HARI_ATK_02.ZNM`, spanning frames 0-15 at 60 Hz,
+  which supplies the 15-frame extension phase.
+- **VERIFIED** — the PC static callback at `0x0046C1F0` is a single return; id 0
+  has no movement or phase transition.
+- **INFERRED** — Episode I's public-domain implementation was read only after
+  the PC and arm64 flows were recovered, as a semantic cross-check. No numeric
+  value was borrowed from Episode I.
+
+### Implementation
+
+- **VERIFIED** — `HariSenbos` parses the act's base event file to preserve raw
+  width and height, filters strictly on catalog class, converts native
+  coordinates to the port's Y-up world frame, and maintains independent state
+  for every placement.
+- **VERIFIED** — id 0 remains static. Id 15 cycles through waiting, 60-frame
+  windup, 15-frame armored extension, and the width/height-selected inflated
+  phase. The attack bounds grow only after extension completes and reset with
+  armor at the cycle boundary.
+- **VERIFIED** — player overlap uses the recovered attack rectangle.
+  `GameEngine.Behaviours.cs` owns construction, schedules the enemy at object
+  priority, and routes contact through the shared `DamagePlayer` transition.
+- **INFERRED** — native rectangle dispatch is represented with this port's
+  axis-aligned player body. Rectangle dimensions and phase timing are Episode
+  II's; exact native edge-contact ordering is not claimed.
+
+### Regression
+
+- **VERIFIED** — the focused suite was first observed RED with `CS0246` because
+  `HariSenboPlacement` and `HariSenbos` did not exist. It turned GREEN only
+  after the production behavior and engine wiring were added.
+- **VERIFIED** — focused HariSenbo suite: **7/7 green**. Coverage includes exact
+  class filtering against `Ep2HariSenbo`, world position, attack/defense boxes,
+  raw and fallback durations, the static id-0 path, every red phase boundary,
+  armor timing, attack-range expansion, the real three-enemy Episode I Zone 1
+  Act 1 mount, and ringed player damage through the scheduler.
+- **VERIFIED** — `dotnet test src`: **317/317 green**, 0 failed.
+- **VERIFIED** — `dotnet build src` and the separate Android head both
+  succeeded with 0 errors using the ordered SDK/JDK paths, `-m:1` and
+  `JAVA_TOOL_OPTIONS=-Xmx256m`.
+- **OPEN** — both builds report the existing `CS0414` warning in Lexus-owned
+  `StageViewerGame._skyCenterX`; no Aston-owned file reports a warning.
+
+### Still open
+
+- **OPEN** — the player has no recovered enemy-attack reaction yet, so defeating
+  the pufferfish, armored deflection, score, animal release, death smoke and
+  sound remain unrepresented. `IsArmoredAt` and the defense rectangle preserve
+  the recovered boundary for that future behavior.
+- **OPEN** — this port mounts all placements at stage entry and has no native
+  view-based event-object streaming, so red cycles start at mount rather than
+  when each enemy enters the spawn window.
+- **OPEN** — models, animation blending and the jet effect are not represented.
+- **OPEN** — `Ep2HariSenbo` is a separate, unimplemented behavior.
+- **OPEN** — `Player.Width` and `Player.Height` remain explicitly marked
+  Episode I's and not recovered from Episode II.
+- **VERIFIED** — Aston's ordered behavior queue is complete.
+
+Wagata, Yondaime! Signed sincerely by your dear Aston
