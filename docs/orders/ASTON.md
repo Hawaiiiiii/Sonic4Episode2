@@ -196,3 +196,54 @@ depends on the damage you just built.
   games — establish which from Episode II rather than from genre memory.
 
 Report as usual. One behaviour, then stop.
+
+---
+
+# Order 3 — widened scope
+
+You have earned a longer leash. The first beat was well-structured and you stopped
+where told, so the per-behaviour checkpoint is lifted. **Run the whole behaviour
+queue without waiting on me between each**, but still write one beat per behaviour
+in your handoff so the ledger stays granular and a mistake is easy to localise.
+
+Order, after the `HorizontalKnockbackPixels` correction:
+
+1. **Needle** (614 placements, 22 acts) — with the hitbox recovered, not assumed.
+2. **Land** (394, 24 acts) — moving platforms. Mind the `TempOffset` rule in
+   `GameObject`: riding displacement goes in `TempOffset`, never straight into the
+   position, or a persistent push accumulates. That rule already exists because it
+   was got wrong once.
+3. **Bumper** (261, 3 acts) — `Springs` is close to a template.
+4. **WaterArea** (216, 6 acts) — a region that modifies physics, not a trigger.
+5. **HariSenbo** (145, 11 acts) — first enemy; needs damage working.
+
+## Additional task — Zone 2 collision, beta versus retail
+
+Separate from the queue, and worth doing early because it is a *correctness* issue
+in shipped work rather than a new feature.
+
+The retail build comparison found **exactly four game-data files differ** from
+Beta 8, and three are Zone 2's collision layers: `ZONE2A_ATTR.AMB`,
+`ZONE2B_ATTR.AMB`, `ZONE2C_ATTR.AMB` (see `docs/RESUME-HERE.md`). Everything else
+in the game is byte-identical.
+
+Retail is at `C:\Users\DavidErikGarciaArena\Downloads\Sonic 4 - Episode 2 (Release)`.
+
+Determine **what actually changed** — decode both with `tools/collision.py` and
+diff the height fields and surface angles, not just the bytes. Report whether it
+is a real geometry change (in which case our Zone 2 collision is beta-accurate and
+wrong for retail) or something incidental like padding or ordering. If it is real,
+say which cells and how many.
+
+Do not re-target the project to retail data on your own initiative — report, and
+I will decide.
+
+## A standing note on recovered values
+
+The knockback error is the failure mode to watch for, so hold this rule: **a
+constant is not recovered until you know which field it is written to.** Follow
+the store, not the immediate. Where you cannot establish the destination, mark it
+`OPEN` rather than guessing an axis — an honest gap costs a beat, a wrong constant
+costs whoever finds it later.
+
+Same reporting as before. Commit and push each beat.
