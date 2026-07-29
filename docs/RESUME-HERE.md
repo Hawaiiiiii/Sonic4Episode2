@@ -145,6 +145,46 @@ at `Downloads\unwrap\Sonic.exe.unpacked.exe` (4,301,168 bytes, against Beta 8's
 4,302,848 — nearly the same size). Original untouched. Treat it like every other
 oracle: gitignored, read-only, never a source.
 
+## ⭐ RESUMING? READ THIS BLOCK FIRST (state as of beat 71)
+
+**Two agents work this repo.** Lexus (orchestrator, sole human interface) holds
+**rendering, RE evidence and review**. Aston holds **gameplay behaviours and
+audio**, taking orders from `docs/orders/ASTON.md` and reporting append-only to
+`docs/handoffs/aston.md`. Trigger phrase: *"Continue per Lexus's orders."*
+File boundaries are in that orders file and matter — respect them.
+
+### What just landed
+
+- **The custom shader works** (beat 70). `Content/Stage.fx` compiled with
+  `dotnet-mgfxc` implements the recovered material model. The bug that cost two
+  beats: **MonoGame writes the effect's sampler state during `pass.Apply()`, so a
+  texture assigned before it is discarded.** Set textures *after* Apply.
+  It is **opt-in via the `STAGE_FX` environment variable** (`on`, `flat`, unset)
+  and unset by default, because it is slower than `BasicEffect` — per-pixel
+  lighting over 3.8M triangles. `STAGE_FX=flat` selects a flat-colour diagnostic
+  technique, which is how the black-screen bug was localised.
+- **Capture properly:** use the viewer's own `--screenshot <path>` flag with
+  `SCREENSHOT_FRAME=n`. Do **not** try to screenshot the window with Win32 calls;
+  three captures grabbed the wrong window before I noticed the tool already existed.
+- **`0xC8` is HORIZONTAL, `0xCC` is VERTICAL** (beat 71). Settled by
+  `GmPlySeqChangeDamageSetSpd` (`0x005B9304`), which stores its first argument to
+  `0xC8` and derives the facing bit from that value's sign — facing follows
+  horizontal motion. Cross-checked on arm32 at different offsets. **I got this
+  wrong twice before**; the corrected damage constants are 1.5 horizontal and 3.0
+  vertical. Do not re-litigate it.
+- **Aston completed** Damage, Needle, Land, Bumper, WaterArea, HariSenbo and the
+  Zone 2 collision comparison. 232 → 317 tests.
+
+### My next three, in order
+
+1. **Multi-texture rendering.** The capture proved the engine binds **four
+   sampler slots** in three nested configurations — `[0]`, `[0,2,3]`,
+   `[0,1,2,3]` — each with its own pixel shader. `StageBatch` currently keys
+   batches on a single texture and must carry a slot set instead. This draws the
+   1,255 environment maps we currently discard.
+2. **Shader performance**, then flip `STAGE_FX` on by default.
+3. Clear the `CS0414 _skyCenterX` warning in `StageViewerGame` — my file, my mess.
+
 ## Where things stand
 
 **Overall ≈78% *decoding*, ~52% *rendering fidelity*** — two separate numbers, and
@@ -153,7 +193,8 @@ done); rendering fidelity measures pixels matching the original (phase 3's visib
 result), and it is lower because the renderer uses a stock unlit effect and the
 game's own shaders are parsed but not executed. Phase 1 ~95%, phase 2 ~99%, phase
 3 ~98%, phase 4 ~60%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
-**213 tests, all green.** Last beat: 64, committed and pushed.
+**317 tests, all green.** Last beat: 71 (Lexus). Aston's behaviour queue is
+complete through HariSenbo. Everything committed and pushed.
 
 **Recent structural progress (beats 58-61):**
 

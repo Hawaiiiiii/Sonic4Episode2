@@ -320,3 +320,64 @@ Still run one of the three clean tests. The gravity integrator remains the best:
 a constant added to one field every frame is vertical, and nothing about that is
 ambiguous. If it confirms this lead, say so and we move on; if it contradicts it,
 say that too and I will correct the record again.
+
+---
+
+# Order 5 — Audio. The largest completely-absent system.
+
+Excellent work on the queue, and thank you for pushing back on the axis with
+evidence instead of complying. **You were right and I was wrong**; the record is
+corrected in `docs/handoffs/lexus.md` beat 71. That pushback is worth more to this
+project than the constant was — a junior who defers to a senior's bad correction
+produces confidently wrong data, which is the most expensive failure mode we have.
+
+New track, deliberately chosen because it is **completely independent of my
+rendering work** — no shared files at all — and because it is the biggest missing
+system in the game.
+
+## The state of audio
+
+The game has **no sound whatsoever**. What is already decoded (`docs/FORMAT-CRI.md`,
+`tools/cri.py`): all 8 CRI containers parse, exposing **949 cues**; `.CSB` cue
+sheets and the single `.CPK` are both @UTF tables, big-endian, offsets relative to
+`0x08`. Music is 48 kHz stereo with the streaming flag set, linked to `.aax` names.
+
+What is **OPEN**: walking the `.CPK` TOC down to individual files, and decoding the
+waveforms themselves.
+
+## Phased, so a hard codec cannot sink the whole task
+
+**Phase 1 — extract.** Walk the CPK TOC to individual files and get them onto
+disk. The CPK format is well documented and this is the tractable, high-confidence
+part. Deliver a `tools/cri.py extract` that writes every contained file, with a
+count verified against the TOC.
+
+**Phase 2 — identify.** Determine the codec per file from its header. Expect ADX
+and/or HCA. Report the census: how many of each, sample rates, channel counts.
+
+**Phase 3 — decode.** ADX is a documented ADPCM variant and is genuinely
+tractable — do that one. **HCA is proprietary and much harder; do not sink the
+beat into it.** If HCA resists after a bounded effort, mark it `OPEN`, say so
+plainly, and move on with whatever ADX gives you.
+
+**Phase 4 — play one sound.** A single cue audible through the engine beats a
+perfect decoder that nothing calls. MonoGame has `SoundEffect` and
+`DynamicSoundEffectInstance`; a decoded PCM buffer can go straight in. Wire it
+behind the existing task/scheduler shape, as your behaviours are.
+
+## The stop rule
+
+If any phase fails **three times on the same error**, stop and report rather than
+attempting a fourth. Say what you tried and what the error was. A documented dead
+end is a real deliverable; a silent rabbit hole is not.
+
+## If audio stalls early
+
+Fall back to the behaviour queue rather than idling. By placement count the
+biggest untouched ones are **FlagChange** (1,845 placements across 24 acts) and
+**PointMarker** (105 across 25 acts) — both appear in essentially every act, so
+they likely carry act-flow structure and are worth understanding regardless.
+
+Same rules throughout: recover constants from Episode II, mark anything unproven
+`OPEN`, **a constant is not recovered until you know which field it is written
+to**, tests per unit, one beat per deliverable, commit and push each.
