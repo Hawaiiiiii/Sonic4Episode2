@@ -287,3 +287,103 @@ Wagata, Yondaime! Signed sincerely by your dear Aston
 - **OPEN** — `Land` moving-platform behavior is next.
 
 Wagata, Yondaime! Signed sincerely by your dear Aston
+
+---
+
+## Land — moving, routed and falling platforms
+
+**2026-07-29 11:40 CEST (UTC+02:00)**
+
+### Placement evidence
+
+- **VERIFIED** — Episode II contains **394 `Land` placements across 24 acts**.
+  The class-only id totals are 81:102, 82:41, 83:38, 98:92, 534:21,
+  535:55, 536:32, 537:0, 538:4, 539:1 and 540:8. All 394 parameters are zero.
+- **VERIFIED** — id 541 is the separate `LandRoutePos` catalog class. Its
+  signed left/top fields identify route and point indices; it supplies metadata
+  to id-540 platforms and is never mounted as a platform itself.
+- **VERIFIED** — event bytes 6/7 are signed left/top values and bytes 8/9 are
+  unsigned width/height values. `Lands.FromEventData` preserves all four raw
+  fields while filtering only `Land` and `LandRoutePos` through
+  `ObjectCatalog.Is`.
+
+### Episode II oracle
+
+- **VERIFIED** — `GmGmkLandInit` begins at `0x0053D53C` and the main begins at
+  `0x0053E6D4`. Its raw-field loads at `0x0053D654–0x0053D690` use `ldrsb` for
+  left/top and `ldrb` for width/height.
+- **VERIFIED** — the low-two-bit speed table at `0x00960DE8` is **4, 2, 3, 5**.
+  Normal platforms use the 1024-step path at
+  `0x0053E804–0x0053E88C`; bit 2 waits for a rider, bit 3 reverses horizontal
+  phase, and bits 4-5 add 256-step phase offsets.
+- **VERIFIED** — ids 98 and 537 use the rectangle branch. The initializer doubles
+  all four raw path fields at `0x0053D768–0x0053D794`; the main traverses that
+  perimeter at `0x0053E744–0x0053EA50`.
+- **VERIFIED** — id 540 uses the route manager at `0x0053EDF4`. The initializer
+  sign-extends top and stores it in the speed halfword at
+  `0x0053D850–0x0053D854`; the main reloads it unsigned, converts it and
+  multiplies it by **0.5 px/frame** at `0x0053E8FC–0x0053E910`. Route ids and
+  point ids are limited to 0-7. Placement bit 0 stops at the last point;
+  otherwise the endpoint logic at `0x0053ED80–0x0053EDD8` ping-pongs.
+- **VERIFIED** — placement bit 6 arms falling after 30 ridden frames. Generic
+  enemy work loads **0.1640625 px/frame²** and **15 px/frame** from
+  `0x0094E270`; Land replaces the terminal field with **7.5 px/frame** at
+  `0x0053EBD4–0x0053EBD8`.
+- **VERIFIED** — collision branches by the 36-entry
+  `g_gm_gamedat_zone_type_tbl` at `0x009571B4`, not by Episode II versus Episode
+  Metal object-id family. Type branches begin at `0x0053DA84`,
+  `0x0053DA9C`, `0x0053DAE8` and `0x0053DB40`. Recovered boxes include the
+  normal 56/88-wide family, later-zone 48/80-wide family, 64-by-64 type 2,
+  the zone-type-8 24-by-32 type 2, and the per-zone type-3 widths. Placement
+  bit 7 changes ordinary platforms from the 8-pixel one-way top to the
+  24-pixel full box; type 2 is always full.
+- **INFERRED** — act archives absent from the active stage-path table inherit
+  the zone type of their directory's listed Episode Metal act. No collision
+  constant was borrowed from Episode I.
+
+### Implementation
+
+- **VERIFIED** — `Lands` implements sinusoidal, doubled-rectangle and routed
+  translation, phase flags, rider-triggered motion, stop/ping-pong endpoints,
+  one-way and full platform collision, and the recovered delayed fall.
+- **VERIFIED** — rider travel is cumulative `TempOffset`, never direct platform
+  displacement written into `Player.Position`. Collision corrects the player's
+  gravity and grounding before `GameObject.Update` applies the current offset,
+  so a persistent ride does not accumulate. The callback also rejects stale
+  players after a stage transition.
+- **VERIFIED** — `GameEngine.Behaviours.cs` owns construction and wiring.
+  Land runs from the active player's collision slot after movement, which is the
+  point at which the current `TempOffset` can still be applied in the same frame.
+- **INFERRED** — the recovered native boxes are resolved through this port's
+  axis-separated `Player` collision model. The dimensions and one-way flags are
+  Episode II's; exact native edge-contact ordering is not claimed.
+
+### Regression
+
+- **VERIFIED** — the first focused run was observed RED with `CS0246` because
+  `LandPlacement` did not exist; it turned GREEN only after the production
+  behavior was added.
+- **VERIFIED** — the rider regression was separately observed RED when gravity
+  detached the player and accumulated position. Correcting the crossing test
+  and keeping travel exclusively in `TempOffset` returned it to GREEN.
+- **VERIFIED** — focused Land suite: **17/17 green**, including all four speed
+  selectors, wait/reverse flags, both rectangle ids, moving/zero-speed routes,
+  stop versus ping-pong, collision families, landing, riding, falling and a real
+  Zone 1 engine mount that advances through the installed callback.
+- **VERIFIED** — `dotnet test src`: **264/264 green**, 0 failed.
+- **VERIFIED** — the whole solution and the separate Android head both built
+  successfully with 0 errors using the ordered SDK/JDK paths, `-m:1` and
+  `JAVA_TOOL_OPTIONS=-Xmx256m`.
+- **OPEN** — both builds report the existing `CS0414` warning in Lexus-owned
+  `StageViewerGame._skyCenterX`; no Aston-owned file reports a warning.
+
+### Still open
+
+- **OPEN** — type-3 visual tilt, linked render pieces, effects and sound are not
+  represented. Translational motion and collision are present.
+- **OPEN** — collision uses `Player.Width` and `Player.Height`; those player
+  dimensions remain explicitly marked Episode I's and not recovered from
+  Episode II.
+- **OPEN** — Bumper is next.
+
+Wagata, Yondaime! Signed sincerely by your dear Aston
