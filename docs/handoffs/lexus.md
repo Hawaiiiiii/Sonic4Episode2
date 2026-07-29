@@ -4456,3 +4456,74 @@ four, which is what the custom shader has to implement.
    configurations rather than nine open-ended roles.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 68 — CTAB names every shader constant, and corrects one of mine
+
+**2026-07-29 03:09 CEST (UTC+02:00)**
+
+The capture gave register *values*; the shaders' own `CTAB` tables give register
+*names*. Crossing them names the engine's constants outright instead of inferring
+meaning from shape.
+
+### Parsing it
+
+Every PC shader carries a `CTAB` constant table. Offsets inside are relative to
+the structure start — just past the `CTAB` fourcc — and getting that base wrong
+makes every name read back as the literal string `CTAB`, which is a useful tell.
+Parsed cleanly across all **1,843 shaders**.
+
+The vocabulary is in `docs/ORACLES.md`. The load-bearing entries: `u_FrontMaterial`
+(float4 x2), `u_ModelViewBoneMatrix` (float4 x16), `u_LightSource` (float4 x16),
+`u_TextureMatrix`, `u_Fog`, and samplers `s_texBase`, `s_texDecal`,
+`s_texSpecular`, `s_texNormal`, `s_texEnvMask`, `s_texModulate`, `s_texShadow`,
+`s_texDualParaboloid`, `s_texUserSampler2D1`/`2`.
+
+### It killed my own candidate, correctly
+
+Beat 67 found `c13` invariant at `(0, 1, 0, 0)` across every draw and I noted it
+looked like a fixed light direction but **refused to claim it**. CTAB places `c13`
+inside `u_Fog` (c10..c14). It is a fog parameter. Had that been published as the
+recovered light direction, the engine would now hard-code fog as its light.
+
+That is the second time this session the discipline paid directly — the first was
+declining to read the title-screen capture as evidence about gameplay.
+
+### A real correction to beat 64
+
+**The game lights per pixel, not per vertex.** `u_LightSource` appears in **676
+pixel shaders against 19 vertex shaders**. Beat 64 set MonoGame's
+`PreferPerPixelLighting = false` on an assumption. Corrected to `true`, with the
+evidence cited in the code.
+
+### Two more facts worth having
+
+`u_FrontMaterial` occupying exactly **two float4 registers** independently
+confirms the two-colour material block decoded in beat 64 — reached from shader
+metadata rather than from the model data, so the two sources agree without having
+been fitted to each other.
+
+And **the PC has shadows the mobile builds do not**: `s_texShadow` and
+`u_TexShadowColor` in 144 and 199 shaders, with nothing equivalent in the iOS
+interface. The iOS source is a *reduced* port, which is a caveat on using it as
+the shader reference.
+
+### Regression
+
+Whole solution · **217 tests** — green. One-line renderer change plus docs.
+
+### Progress
+
+**≈84% decoding · ~56% rendering fidelity.** The constant vocabulary is now known
+rather than guessed, which is the last piece the custom shader needed.
+
+### Next
+
+1. The shader path itself: four sampler slots, three nested configurations, a
+   named constant vocabulary, per-pixel lighting. The target is fully specified.
+2. Correlate a bound texture to its `.DDS` name to close the stage-array-position
+   hypothesis from beat 67.
+3. Mobile validation.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
