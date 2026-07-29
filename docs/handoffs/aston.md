@@ -217,3 +217,73 @@ Wagata, Yondaime! Signed sincerely by your dear Aston
   `Land`.
 
 Wagata, Yondaime! Signed sincerely by your dear Aston
+
+---
+
+## Zone 2 collision — Beta 8 versus patched retail
+
+**2026-07-29 10:45 CEST (UTC+02:00)**
+
+### Verdict
+
+- **VERIFIED** — this is a real height-field edit, not AMB padding, entry
+  ordering or metadata. Each of `ZONE2A_ATTR.AMB`, `ZONE2B_ATTR.AMB` and
+  `ZONE2C_ATTR.AMB` changes the same two bytes inside its `.DF` payload.
+- **VERIFIED** — it is one unique shape-library correction replicated across
+  the three tileset archives: record 180, cell 61, columns 23 and 60.
+- **VERIFIED** — no collision cell placed by any shipped Zone 2 map selects that
+  changed record/cell combination. Resolving every static map cell therefore
+  produces identical Beta 8 and retail height fields, angles and attributes.
+- **INFERRED** — the patch is gameplay-inert unless code rewrites a Zone 2
+  attribute grid at runtime to select this otherwise-unused slot. No such
+  dynamic grid mutation was established in this beat.
+
+### Decoded difference
+
+- **VERIFIED** — all six archives are 1,362,112 bytes and retain the same three
+  entries, offsets and lengths. `.AT` begins at 96, `.DF` at 7,008 and `.DI` at
+  1,331,552.
+- **VERIFIED** — each archive differs at exactly two absolute offsets:
+  `748219` changes `30 -> 31`, and `748256` changes `52 -> 53`.
+- **VERIFIED** — `tools/collision.py` resolves those bytes to `.DF` record 180,
+  cell 61, columns 23 and 60. Each rises by one stored height unit, or two stage
+  pixels at the recovered two-pixels-per-height-unit scale.
+- **VERIFIED** — the `.DF` index is unchanged. Attribute ids 1886 and 1896 both
+  select record 180 in Beta 8 and retail.
+- **VERIFIED** — the complete `.DI` and `.AT` payloads and indices are
+  byte-identical. Both ids select `.DI` record 222, whose cell-61 angle remains
+  233 units, approximately +32.34 degrees in the Y-up frame.
+- **VERIFIED** — the fitted slope of the edited cell moves from approximately
+  30.69 degrees to 31.84 degrees. The unchanged stored angle remains compatible
+  with both versions; the full `collision.py angles` report is identical:
+  12,813 shaped cells, median 4.1 degrees error, 83% within 15 degrees.
+
+### Static-map reachability
+
+- **VERIFIED** — the four Zone 2 map archives are byte-identical between Beta 8
+  and retail: `ZONE21A_MAP`, `ZONE22B_MAP`, `ZONE23C_MAP` and
+  `ZONE2BOSSB_MAP`.
+- **VERIFIED** — ids 1886/1896 occur nine times across the static attribute
+  layers. Their 8-by-8 record slots are 25, 0, 26, 60, 9 and 5 in Act 1, and
+  37, 58 and 60 in Act 3. Slot 61, the edited cell, occurs zero times. Act 2 and
+  the boss contain neither id.
+- **VERIFIED** — an end-to-end scan resolved all **73,290** nonzero cells across
+  every `_ATTR_A.MP` and `_ATTR_B.MP` layer through the matching A/B/C archive:
+  **0 height changes, 0 angle changes, 0 character-attribute changes**.
+
+### Tool verification
+
+- **VERIFIED** — `collision.py show` decoded all six target archives with the
+  same counts: 322 `.DF` records, 388 `.DI` records, 20 `.AT` records and 2,810
+  index entries apiece.
+- **VERIFIED** — `collision.py verify` parsed all nine stage-collision payloads
+  under each Zone 2 tree. Its reported no-header gimmick collision files are the
+  tool's documented separate format, not failures of the three target archives.
+- **VERIFIED** — no source or game-data file was changed. This beat adds only
+  this clean-room engineering report.
+
+### Next
+
+- **OPEN** — `Land` moving-platform behavior is next.
+
+Wagata, Yondaime! Signed sincerely by your dear Aston
