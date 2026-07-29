@@ -293,3 +293,30 @@ matter which — what matters is that the answer is proven rather than asserted.
 that had the same defect as the error. Verifying is not enough if the verification
 inherits the assumption. Cite the instruction that proves it, not the conclusion
 that assumes it.
+
+## Addendum to Order 4 — a lead on the axis, offered as a lead only
+
+While you work, I looked further. This is **suggestive, not proof**, and I am
+recording it as a lead precisely because asserting it is the mistake I just made.
+
+`[x19+0xF8]` looks like the player's **ground speed** — a scalar, not a component:
+
+- `GmPlySeqInitDamage` zeroes it (`str wzr, [x19, 0xf8]`), which is what damage
+  should do to ground speed.
+- The dash-panel sequence reads it and copies it to `[x19+0x3D20]`.
+- `GmPlySeqInitJump` loads it into `s9` and uses it as the **magnitude** for the
+  component it stores to `0xCC` (`fmul s0, s0, s9` → `str s0, [x19, 0xcc]`), with
+  `s0` coming from a trig call on an angle.
+
+If `0xF8` really is ground speed, a jump resolving it through trig into `0xCC`
+points at **`0xCC` being horizontal and `0xC8` vertical** — which would mean my
+Order 2 correction was right after all, and for a better reason than the circular
+one I originally gave.
+
+**But it does not settle it**, because on a slope *both* components derive from
+ground speed, so this cannot separate them on its own. Do not treat it as decided.
+
+Still run one of the three clean tests. The gravity integrator remains the best:
+a constant added to one field every frame is vertical, and nothing about that is
+ambiguous. If it confirms this lead, say so and we move on; if it contradicts it,
+say that too and I will correct the record again.
