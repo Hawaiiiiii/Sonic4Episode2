@@ -145,7 +145,7 @@ at `Downloads\unwrap\Sonic.exe.unpacked.exe` (4,301,168 bytes, against Beta 8's
 4,302,848 — nearly the same size). Original untouched. Treat it like every other
 oracle: gitignored, read-only, never a source.
 
-## ⭐ RESUMING? READ THIS BLOCK FIRST (state as of beat 72)
+## ⭐ RESUMING? READ THIS BLOCK FIRST (state as of beat 73)
 
 **Two agents work this repo.** Lexus (orchestrator, sole human interface) holds
 **rendering, RE evidence and review**. Aston holds **gameplay behaviours and
@@ -181,8 +181,31 @@ decode, then one audible cue. Audio is the biggest completely-absent system.
 - **The renderer was transfer-bound, not shader-bound.**
   `DrawUserIndexedPrimitives` re-uploads the vertex array **every call** — 8.5M
   vertices across 43 batches, hundreds of MB per frame. One `VertexBuffer` plus a
-  shared `IndexBuffer` took it from **7.30 to 1.50 s/frame (4.9x)**, and the
-  custom effect now beats `BasicEffect` (1.75).
+  shared `IndexBuffer` fixed it, and beat 73's proper measurement puts the gain
+  far higher than the 4.9x first credited: **draw time went from roughly 5.8 s to
+  24 ms.**
+
+### And beat 73 — the performance diagnosis in beat 72 was wrong
+
+- **Never wall-clock the process to measure a frame.** Doing that attributes
+  everything between frames to drawing, which is how beat 72 concluded the
+  renderer was geometry-bound when **the draw takes 24 ms (40 FPS)**. The viewer
+  now times `Draw` and `Update` from inside the loop and prints min/median/max at
+  screenshot time. Use that.
+- **The real cost was `Update` running 28 times per rendered frame.**
+  `BuildObjectBuffers` pushed `Update` past the fixed timestep's 16.7 ms budget,
+  and MonoGame answers a slow `Update` by running more of them to catch up — 850
+  updates for 30 draws.
+- **Two fixes.** Pose each distinct model once rather than once per placement
+  (Zone F places 200 objects from 6 models, so it was doing 200 evaluations for 6
+  results), and rebuild posed geometry in `Draw` rather than `Update`, which is
+  where presentation state belongs and which stops the spiral. `Update` now
+  measures 0.0 ms and 30 frames of Zone F went from ~93 s to 12 s.
+- **Culling is implemented, pixel-exact, and buys nothing here.** It cuts Zone F
+  to 12.5% of its triangles and 0 of 921,600 pixels differ, but frame time is
+  unchanged because the draw was never the bottleneck. Kept for the phone target,
+  where it should matter more; whether it does is **OPEN**. `STAGE_CULL=off`
+  disables it for A/B.
 - **Look for reflections in the metal zones, not Zone 1.** Zone 1 has **6**
   environment stages, all on enemies; Zone 4 has 528 and Zone F 424. Zone F Act 1
   renders 3,586,475 reflective triangles, and against a `noenv` render **24.6% of
@@ -198,17 +221,17 @@ decode, then one audible cue. Audio is the biggest completely-absent system.
 
 ### My next three, in order
 
-1. **Cull to the visible region — the single biggest win available.** The whole
-   act is submitted every frame while the camera sees perhaps 1–2% of it. The
-   measurements say the remaining cost is entirely geometry: flat, custom and
-   `BasicEffect` all land within 15% of each other. This is roughly a 50x win and
-   the difference between 0.7 FPS and playable. Needs the index buffer partitioned
-   spatially.
+1. **Stop rebuilding object geometry every rendered frame.** This is now the
+   entire remaining cost: Zone F draws in 70 ms and Zone 1 Act 1 in 120 ms, of
+   which the stage itself is only 18–30 ms. `BuildObjectBuffers` rebuilds the
+   whole object vertex array and batch dictionary each frame. Keep it in GPU
+   buffers and animate by transform instead of re-transforming vertices on the
+   CPU.
 2. **Normal and specular maps.** Roles are decoded (230 + 65 stages) but
    tangent-space normal mapping needs tangents the vertex format does not carry.
    Deliberately not faked.
-3. **Bring the other draw paths across.** Objects, rings, sky and the player still
-   go through `BasicEffect` and still stream their geometry every frame.
+3. **Bring the other draw paths across.** Rings, sky and the player still go
+   through `BasicEffect` and still stream their geometry every frame.
 
 ## Where things stand
 
@@ -219,8 +242,10 @@ result). Fidelity is still the lower number, but it now reflects our own recover
 material effect drawing the stage by default, with environment maps and real
 per-material colour, rather than a stock unlit one. Phase 1 ~95%, phase 2 ~99%,
 phase 3 ~98%, phase 4 ~60%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
-**322 tests, all green.** Last beat: 72 (Lexus). Aston's behaviour queue is
-complete through HariSenbo and he is on the audio track. Everything committed and
+**325 tests, all green.** Last beat: 73 (Lexus). Aston's behaviour queue is
+complete through HariSenbo; on the audio track he has CPK extraction and the
+codec census done (55 AAX files, 94 streams, all ADX, no HCA) with ADX decoding
+next. Everything committed and
 pushed.
 
 **Recent structural progress (beats 58-61):**

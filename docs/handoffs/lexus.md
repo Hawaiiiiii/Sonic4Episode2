@@ -4901,10 +4901,138 @@ default path rather than an opt-in.
    thing: the whole act is submitted every frame while the camera sees perhaps
    1-2% of it. That is the ~50x win, and it is the difference between 0.7 FPS and
    playable. It needs the index buffer partitioned spatially.
+
+   > **WRONG — corrected in beat 73.** The draw takes 24 ms, not 1.5 s; the
+   > renderer was never the bottleneck. I measured by wall-clocking the process
+   > at two frame counts, which attributed everything between frames to drawing.
+   > The cost was `Update` running 28 times per rendered frame. Culling was
+   > implemented anyway, is pixel-exact, and changes frame time by nothing.
+   > Leaving the claim visible rather than editing it away, because the
+   > mis-measurement is the more useful thing to remember.
 2. Normal and specular maps — the roles are decoded and 230 + 65 stages carry
    them, but tangent-space normal mapping needs tangents the vertex format does
    not supply. Deliberately not faked.
 3. The object, ring, sky and player paths still go through `BasicEffect` and still
    stream their geometry.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 73 — I culled the stage, it changed nothing, and that was the useful part
+
+**2026-07-29 17:00 WEDT (UTC+02:00)**
+
+Beat 72 ended by naming visible-region culling as the single biggest win
+available, on the strength of a measurement I had misread. Culling is now
+implemented and correct. It buys **nothing**, and chasing why led to the actual
+bottleneck, which was somewhere else entirely.
+
+### What culling does, and does not, do
+
+`StageBatch` records the column each triangle was placed in, and the renderer
+sorts each material's triangles by column inside the shared index buffer. Because
+the columns end up adjacent, the visible range is one contiguous span, so a culled
+draw is still a single `DrawIndexedPrimitives` — just a shorter one.
+
+It works exactly as designed. Zone F drops from **3,868,937 triangles to 483,268
+(12.5%)**, and rendering with culling on and off is **pixel-identical: 0 of
+921,600 pixels differ.** That is the correctness proof.
+
+And the frame time did not move. **25.2 ms culled against 24.5 ms unculled** —
+the unculled run marginally *faster*, comfortably inside the noise. Two identical
+configurations differed by more than the two different ones did.
+
+### Which means beat 72's diagnosis was wrong
+
+I wrote there that "the cost is geometry: 3.87M triangles submitted every frame".
+It is not, and the number that should have stopped me is this one: **the draw
+takes 24 ms.** That is 40 FPS. The renderer was never the problem.
+
+The error was the instrument. I measured by wall-clocking the process at two
+frame counts and dividing the difference, which silently attributed *everything*
+that happens between frames to drawing. Timing `Draw` from inside the loop
+instead — and reporting the minimum, since contention can only push a sample
+upward — separates it immediately:
+
+| | min | median |
+|---|---:|---:|
+| Draw | 24.0 ms | 28.1 ms |
+| Update | 62.8 ms | 79.4 ms |
+
+**And 850 updates ran for 30 draws.** That is the whole story. `Update` cost more
+than the fixed timestep's 16.7 ms budget, and MonoGame answers a slow `Update` by
+running more of them to catch up, so it spiralled to 28 simulation steps per
+rendered frame — each one redoing work whose result is seen at most once.
+
+So the 1.50 s/frame I reported in beat 72 was roughly 28 × 79 ms of `Update`, not
+geometry. What that beat *did* get right is the vertex-buffer fix: draw time went
+from something near 5.8 s to 24 ms, a far larger win than the 4.9x I credited it
+with. I under-measured a good change and then misattributed what remained.
+
+### The real cost, and two fixes
+
+`BuildObjectBuffers` rebuilds every placed object's posed geometry from scratch,
+and it ran per simulation step.
+
+**Pose each distinct model once, not once per placement.** Zone F places 200
+objects drawn from **6 distinct models**, and the pose depends only on the model
+and the frame — never on where the instance stands. It was doing 200 skeleton
+evaluations and full CPU vertex transforms to produce 6 distinct results. Caching
+by model took `Update` from 62.8 ms to 26.9 ms.
+
+**Rebuild posed geometry in `Draw`, not `Update`.** It is presentation state, not
+simulation state, so this is where it belonged anyway — but the practical effect
+is that `Update` falls below the timestep budget and the catch-up spiral stops.
+`Update` now measures **0.0 ms**.
+
+Together, 30 frames of Zone F went from about **93 s of wall clock to 12 s**, and
+per rendered frame from roughly 2.2 s to 0.07 s.
+
+### Where it stands now, honestly
+
+Zone F draws in **70 ms**, Zone 1 Act 1 in **120 ms** — 14 and 8 FPS. Better by a
+wide margin and still not playable. The remaining cost is now unambiguous and
+sits in one place: `BuildObjectBuffers` still rebuilds the whole object vertex
+array and batch dictionary every rendered frame. The stage itself, which I spent
+this beat culling, contributes 18-30 ms of it.
+
+### On keeping the culling
+
+It is retained despite buying nothing here, and I want the reasoning on the
+record rather than assumed. It is correct, pixel-exact, tested, and it cuts
+submitted geometry eightfold; this port targets phones, where that should matter
+much more than it does on a desktop GPU that is not the bottleneck. Whether it
+actually helps on a device is **OPEN** and stays that way until one runs it. If
+the answer turns out to be no, it should come out.
+
+### The lesson worth keeping
+
+A cheap check gave a disappointing result — culling changed nothing — and the
+right response was to suspect the check rather than shrug. Doing that turned a
+non-improvement into the correct diagnosis of a 30x problem. The same discipline
+that killed the position-is-the-slot hypothesis in beat 72 applied to my own
+performance claim from the same beat.
+
+### Regression
+
+Whole solution · **325 tests** — green, 3 new. They pin that columns floor rather
+than truncate either side of the origin (or the columns adjacent to zero would
+collide), that every triangle is filed under the column its tile was placed in,
+and that interleaved materials keep their column lists parallel to their own
+triangles.
+
+### Progress
+
+**≈86% decoding · ~62% rendering fidelity.** Unchanged deliberately: this beat
+moved performance and corrected the record, and neither is a pixel.
+
+### Next
+
+1. **Stop rebuilding object geometry every frame.** Keep it in GPU buffers and
+   animate by transform rather than re-transforming vertices on the CPU. This is
+   the whole remaining cost.
+2. Normal and specular maps — still needs tangents the vertex format lacks.
+3. The sky, ring and player paths still stream their geometry too.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
