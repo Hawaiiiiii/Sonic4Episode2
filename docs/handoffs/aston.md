@@ -489,3 +489,105 @@ Wagata, Yondaime! Signed sincerely by your dear Aston
 - **OPEN** — WaterArea is next.
 
 Wagata, Yondaime! Signed sincerely by your dear Aston
+
+---
+
+## WaterArea — directional water surface and underwater physics
+
+**2026-07-29 13:42 CEST (UTC+02:00)**
+
+### Placement evidence
+
+- **VERIFIED** — Episode II contains **216 `WaterArea` placements across six
+  acts**: 41 in `ZONE31_MAP`, 16 in `ZONE33_MAP`, 21 in `ZONE11_MAP`, 56 in
+  `ZONE12_MAP`, 17 in `ZONE13_MAP` and 65 in `ZONE23C_MAP`.
+- **VERIFIED** — the class-only object-id totals are 123:24, 124:20, 125:0,
+  126:1, 127:12, 492:61, 493:40, 494:23, 495:15 and 496:20. Construction uses
+  `ObjectCatalog.Is(..., "WaterArea")`.
+- **VERIFIED** — `WaterSlider` ids 132-139, `WaterfallSplit` id 559,
+  `FrozenWater` id 631 and `JetWallWater` id 766 are separate classes and are
+  not mounted by this behavior.
+- **VERIFIED** — all 216 placements have parameter zero. Their flags use the
+  native duration bitfield; bytes 6-9 retain the signed level fields and
+  unsigned directional-region dimensions that the generic placement model
+  does not expose.
+
+### Episode II oracle
+
+- **VERIFIED** — arm64 `GmGmkWaterAreaInit` begins at `0x0057DB54`. Ids
+  123/492, 124/493, 125/494 and 126/495 select left-to-right, right-to-left,
+  above-to-below and below-to-above regions. Ids 127/496 select the immediate
+  restart form.
+- **VERIFIED** — the target surface is the unsigned 16-bit result of
+  `signed(left) * 100 + signed(top)`. Low flag bits 0-9 contribute weighted
+  durations of 1-10 seconds; the initializer multiplies the sum by 60 frames.
+- **VERIFIED** — directional rectangles use the raw unsigned width and height
+  with a **34-pixel minimum** on each axis. The native rectangle callback arms
+  on the source side and the main state requests the new level after the player
+  leaves on the destination side. It stores no duration-based re-arm cooldown.
+- **VERIFIED** — immediate areas request their level only when both restart-axis
+  distances are at most **128 pixels**. The comparisons at
+  `0x0057DBA4`/`0x0057DBC0` branch only when greater, so the boundary is
+  inclusive.
+- **VERIFIED** — `GmWaterSurfaceRequestChangeWaterLevel` at `0x005EC2D8`
+  records current level, target, duration and elapsed time. The surface task at
+  `0x005EC738` advances by
+  `(target - current) / (duration - elapsed)` and snaps when the remaining
+  difference is below one pixel.
+- **VERIFIED** — the player water check at `0x005A23C4` enters water when native
+  player Y plus **10 pixels** reaches the current surface. Episode II's
+  `GmPlayerSpdParameterSetWater` at `0x005A5778` multiplies jump impulse by
+  **0.75** and gravity by **0.5**, restoring the normal table values on exit.
+- **INFERRED** — Episode I's public-domain implementation was consulted only
+  after Episode II's data flow and constants were recovered, as a semantic
+  cross-check. No Episode I numeric value was borrowed.
+
+### Implementation
+
+- **VERIFIED** — `WaterAreas` parses the act's base event file so raw bytes 6-9
+  are preserved, filters strictly on `ObjectCatalog.Class`, maps all ten
+  recovered ids, initializes restart-local surfaces, and evaluates directional
+  regions every player frame.
+- **VERIFIED** — water level is global and interpolated independently of the
+  directional regions. `Player.IsUnderwater` is recomputed continuously against
+  that surface; effective jump impulse and gravity use the recovered multipliers
+  without changing character or parameter-table mode.
+- **VERIFIED** — `GameEngine.Behaviours.cs` owns construction and chains the
+  behavior into the active player's enter phase, before `Player.Think`, so the
+  current submerged state affects that frame's physics.
+- **INFERRED** — the native rectangle callback is represented with this port's
+  axis-aligned player body. Direction, dimensions and source/destination tests
+  are Episode II's; exact native edge-contact ordering is not claimed.
+
+### Regression
+
+- **VERIFIED** — the focused suite was first observed RED with `CS0246` because
+  `WaterAreaPlacement` and `WaterAreaDirection` did not exist. It turned GREEN
+  only after the production behavior and player state were implemented.
+- **VERIFIED** — a separate no-cooldown regression was observed RED when the
+  draft delayed re-arming for the transition duration. Removing that unsupported
+  delay returned it to GREEN.
+- **VERIFIED** — focused WaterArea suite: **19/19 green**. Coverage includes
+  class filtering, all ten id directions, raw signed level fields, weighted
+  duration, minimum bounds, inclusive restart range, directional crossing,
+  wrong-side rejection, active-transition re-arm, exact interpolation,
+  persistent underwater physics, restoration on exit and the real
+  21-placement Zone 1 Act 1 engine mount.
+- **VERIFIED** — `dotnet test src`: **310/310 green**, 0 failed.
+- **VERIFIED** — `dotnet build src` and the separate Android head both
+  succeeded with 0 errors using the ordered SDK/JDK paths, `-m:1` and
+  `JAVA_TOOL_OPTIONS=-Xmx256m`.
+- **OPEN** — both builds report the existing `CS0414` warning in Lexus-owned
+  `StageViewerGame._skyCenterX`; no Aston-owned file reports a warning.
+
+### Still open
+
+- **OPEN** — water rendering, refraction, entry effects, bubbles, breath
+  countdown, drowning and audio are not represented.
+- **OPEN** — native WaterArea tracks both player slots; this port currently has
+  one active `Player`.
+- **OPEN** — `Player.Width` and `Player.Height` remain explicitly marked
+  Episode I's and not recovered from Episode II.
+- **OPEN** — HariSenbo is next.
+
+Wagata, Yondaime! Signed sincerely by your dear Aston
