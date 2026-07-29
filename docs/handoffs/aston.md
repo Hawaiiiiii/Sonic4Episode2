@@ -116,3 +116,104 @@ Wagata, Yondaime! Signed sincerely by your dear Aston
 - **OPEN** — Needle is next. It has not been started in this correction beat.
 
 Wagata, Yondaime! Signed sincerely by your dear Aston
+
+---
+
+## Needle — static spike collision and damage
+
+**2026-07-29 10:36 CEST (UTC+02:00)**
+
+### Placement evidence
+
+- **VERIFIED** — the Episode II data contains **614 `Needle` placements across
+  22 acts**: ids 84/85/86/87 occur 209/20/31/11 times and ids
+  445/446/447/448 occur 212/7/100/24 times. Parameters are zero throughout;
+  low flag values 0/1/2/3 occur 570/12/14/18 times.
+- **VERIFIED** — filtering is exclusively through
+  `ObjectCatalog.Is(id, "Needle")`. `ActNeedle` is a different catalog class:
+  30 placements across 10 acts, on ids 88, 89 and 449.
+- **VERIFIED** — Zone 1 Act 1's base event file contains six id-445 needles.
+  The real-data integration test mounts all six rather than relying only on
+  synthetic placements.
+
+### Episode II oracle
+
+- **VERIFIED** — `GmGmkNeedleInit` at `0x00547184` dispatches normal Episode II
+  stages to `GmGmkNeedleEp2Init` at `0x00548168` and Episode Metal stages to the
+  separate initializer at `0x00547234`.
+- **VERIFIED** — Episode II ids 445-448 provide base directions Up, Left, Down
+  and Right. The initializer at `0x005481F0` adds the placement flag's low two
+  bits modulo four. Episode Metal ids 84-87 select those directions directly.
+- **VERIFIED** — Episode II's four physical rectangles were read from
+  `0x0096123E`: `(32,30,-16,-32)`, `(40,30,-36,-16)`,
+  `(32,32,-16,0)`, `(40,28,-4,-16)`, expressed as width, height and origin
+  offsets. Episode Metal's table at `0x009611A6` differs only in the upward
+  entry, `(24,30,-8,-32)`.
+- **VERIFIED** — Episode II's attack rectangles at `0x00961256` are
+  `(-15,-33,15,-8)`, `(-37,-8,-8,4)`, `(-12,32,12,8)` and
+  `(8,-6,37,4)`. Episode Metal's table at `0x009611BE` narrows the upward
+  entry to `(-8,-33,15,-8)`.
+- **VERIFIED** — the normal main at `0x00548928` checks the ride relation only
+  for the upward variant, enabling rectangle flag bit 4 while the player rides
+  it and clearing that bit otherwise. The other orientations keep it set.
+- **INFERRED** — the readable Episode I rectangle implementation identifies
+  bit 4 as the registered attack-rectangle flag. It was used only to interpret
+  the Episode II flag transition; no Episode I numeric value was used.
+- **INFERRED** — the recovered physical records are resolved as full solid
+  rectangles. This follows the generic solid-object initializer that consumes
+  them; the four numeric records themselves are recovered directly.
+
+### Implementation
+
+- **VERIFIED** — `Needles` preserves the two recovered table families, maps
+  directions from object id and low placement flags, resolves crossings against
+  every face of the solid rectangle, and tests attack overlap against the
+  separate recovered rectangle.
+- **VERIFIED** — upward spikes are safe from their sides and become damaging
+  only when ridden. Other directions remain damaging on attack-rectangle
+  contact, while their flat faces remain physically standable where the attack
+  rectangle does not reach.
+- **VERIFIED** — `GM_NEEDLE` runs after the object-manager task at object
+  priority, so it corrects the player's moved position and routes a hit through
+  the shared `DamagePlayer` transition. A real Zone 1 ringed player loses the
+  ten carried rings and enters damage on the recovered upward top.
+- **OPEN** — `GameEngine` had no partial lifecycle hook. The construction,
+  property, scheduler registration and check remain in
+  `GameEngine.Behaviours.cs`, but one call to `MountBehaviours` was necessarily
+  added at the end of `EnterStage`; Lexus should establish or accept that
+  permanent shared hook before more behaviours accumulate.
+
+### Regression
+
+- **VERIFIED** — the class filter, direction mapping, upward top, three active
+  attack directions, three pointed solid faces, two safe flat faces and engine
+  mount each produced an observed RED result before their production slice.
+- **VERIFIED** — targeted mutants that made the Episode Metal top as wide as
+  Episode II's and left the upward attack always active each failed the intended
+  regression test; restoring the recovered behavior returned them to GREEN.
+- **VERIFIED** — focused Needle suite: **15/15 green**, 0 failed.
+- **VERIFIED** — `dotnet test src`: **247/247 green**, 0 failed.
+- **VERIFIED** — `dotnet build src
+  -p:AndroidSdkDirectory=C:/Android/sdk
+  -p:JavaSdkDirectory=C:/Android/jdk`: succeeded, 0 errors.
+- **VERIFIED** — the Android head built separately with the SDK/JDK flags,
+  `JAVA_TOOL_OPTIONS=-Xmx256m`, and `-m:1`: succeeded, 0 errors.
+- **OPEN** — both builds report the existing `CS0414` warning in Lexus-owned
+  `StageViewerGame._skyCenterX`; no Aston-owned file reports a warning.
+- **OPEN** — one chained focused-test invocation timed out without output. Both
+  tests then passed separately and the complete focused and repository suites
+  passed; the timeout did not reproduce.
+
+### Still open
+
+- **OPEN** — `ActNeedle` has its own initializer at `0x005483A8` and a
+  retracting cycle. It is deliberately excluded from this static behavior.
+- **OPEN** — spike rendering, animation, effects and sound remain outside this
+  core behavior beat.
+- **OPEN** — the collision uses `Player.Width` and `Player.Height`; those
+  12-by-25 player dimensions are still explicitly marked Episode I's and not
+  recovered from Episode II.
+- **OPEN** — the Zone 2 beta-versus-retail collision diff is next, followed by
+  `Land`.
+
+Wagata, Yondaime! Signed sincerely by your dear Aston
