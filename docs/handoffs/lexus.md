@@ -4310,3 +4310,72 @@ Whole solution including Android · **217 tests** — green (4 new).
 3. Mobile validation; damage and enemies.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 66 — The frame capture works, and says less than it looks like
+
+**2026-07-29 02:33 CEST (UTC+02:00)**
+
+Built the capture rig against the runnable retail build and took a first trace.
+The instrument is good; the sample is not yet the one we need, and the honest
+reading matters more than the headline.
+
+### The rig
+
+`apitrace 14.0 win32` traces the retail `Sonic.exe` (D3D9, 32-bit) cleanly:
+
+```sh
+apitrace.exe trace -a d3d9 -o traces\s4e2.trace "<Release>\Sonic.exe"
+apitrace.exe dump --calls=0-120000 traces\s4e2.trace
+```
+
+471 MB over **282 frames**, giving `SetTexture`, `SetVertexShader`,
+`SetVertexShaderConstantF`, `SetRenderState` and every draw with its geometry
+counts. Everything we would need is observable.
+
+### What it appears to say, and why I am not claiming it
+
+**Sampler stage 0 is the only one ever bound.** Stages 1-7 receive 1,884-2,118
+clears each and never a texture.
+
+Taken at face value that would say the engine is single-textured — and it would
+**contradict our own material data**, which found 2,464 materials binding two to
+five stages with all 14,357 indices in range. When a capture disagrees with the
+data, the capture's *scope* is the first thing to check, not the data.
+
+It is scope. The trace holds **2,069 draws, 8 distinct shaders, 19 distinct
+textures**. Zone 1 Act 1 loads 51 textures in our own viewer and would bind far
+more shaders. Geometry runs 88-2,089 vertices a draw, which is menu and logo
+work. **The capture never reached gameplay** — it is the boot and title sequence,
+and title content being single-textured is entirely ordinary.
+
+So the multi-stage question stays **OPEN**, and this beat does not close it. What
+it establishes is that the instrument that *can* close it now exists and is
+verified working.
+
+### What it takes to finish
+
+A capture that reaches Zone 1 Act 1. That needs someone to play through the title
+into an act while tracing, which is an interactive step. Roughly ten seconds of
+in-stage footage would be plenty: with stage geometry on screen we can read which
+texture binds to which sampler for a known material, which is exactly the
+flag-to-role mapping the iOS shader source could not give us because its role
+options are all compile-time `(-1)` defaults.
+
+### Regression
+
+No code changed. **217 tests** — green. Tooling only.
+
+### Progress
+
+**≈82% decoding · ~55% rendering fidelity.** Unchanged by design; this beat built
+an instrument rather than moving a number.
+
+### Next
+
+1. A gameplay-reaching capture, then the flag-to-role mapping.
+2. The custom shader path that can consume stage 2 (1,255 environment maps).
+3. Mobile validation; damage and enemies.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
