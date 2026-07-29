@@ -758,3 +758,68 @@ Wagata, Yondaime! Signed sincerely by your dear Aston
   4 respectively.
 
 Wagata, Yondaime! Signed sincerely by your dear Aston
+
+---
+
+## Audio Phase 2 — identify every streamed music file
+
+**2026-07-29 16:48 CEST (UTC+02:00)**
+
+### Episode II evidence
+
+- **VERIFIED** — all 55 CPK entries are `AAX` @UTF tables. Sixteen contain one
+  encoded stream and 39 contain two, for **94 streams total**.
+- **VERIFIED** — all 94 payloads have the ADX `0x8000` signature, encoding 3,
+  18-byte blocks, 4-bit samples, a valid header boundary and the `(c)CRI`
+  marker. The channel, sample-rate and sample-count fields are read directly
+  from each payload header. No HCA payload was observed.
+- **VERIFIED** — codec census: **ADX 55 files / 94 streams; HCA 0 files /
+  0 streams**. Format census: 53 files / 92 streams are stereo 48,000 Hz; one
+  file / one stream is mono 44,100 Hz; one file / one stream is stereo
+  44,100 Hz. Both rows agree on codec and format in every two-stream file.
+- **VERIFIED** — `SONICDL_SNG01.CSB` independently names exactly the same 55
+  paths in `SOUND_ELEMENT`. Its `nch` and `sfreq` values match the recovered
+  headers **94/94**, and its file-level census is the same 53/1/1 split. All 55
+  CSB rows have `fmt = 0` and `stmflg = 1`.
+- **VERIFIED** — the installed `ffprobe` independently identified extracted
+  mono 44.1 kHz and stereo 48 kHz samples as `adpcm_adx` / CRI ADX ADPCM with
+  the same channel and sample-rate fields. The disposable samples were removed
+  after verification.
+
+### Implementation
+
+- **VERIFIED** — `tools/cri.py identify <file.cpk>` now parses each AAX data
+  row, identifies and validates its ADX header, prints one codec/format result
+  per CPK file, then reports codec and sample-rate/channel censuses.
+- **VERIFIED** — unknown audio signatures, truncated headers, invalid header
+  bounds, missing ADX markers, unsupported ADX parameters and zero channel/rate
+  fields fail closed with `CriError`; an unknown or HCA stream cannot silently
+  be reported as ADX.
+- **VERIFIED** — no Episode I constant or implementation was used. The codec
+  and every reported field come from Episode II's own 55 AAX files, with the
+  companion Episode II CSB used only as an independent metadata cross-check.
+
+### Regression and gates
+
+- **VERIFIED** — the identification CLI test was observed RED when argparse
+  rejected the absent `identify` command, then GREEN after implementation. The
+  unknown-signature test was separately observed RED when the signature guard
+  was removed, then GREEN after it was restored.
+- **VERIFIED** — focused Python suite: **8/8 green**.
+- **VERIFIED** — `python tools/cri.py verify ..\SOUND`: **8 containers parsed,
+  0 failed**.
+- **VERIFIED** — `dotnet test src --no-restore`: **322/322 green**, 0 failed.
+- **VERIFIED** — `dotnet build src --no-restore -m:1` and the separate Android
+  build with the ordered SDK/JDK paths and `JAVA_TOOL_OPTIONS=-Xmx256m` both
+  succeeded with **0 warnings and 0 errors**.
+
+### Still open
+
+- **OPEN** — Phase 3 must decode the recovered ADX streams to PCM. This beat
+  identifies and validates headers only; it does not decode waveform blocks.
+- **OPEN** — no HCA exists in the streamed-music CPK, so an HCA decoder is not
+  needed for these 55 files. Codec use in other, embedded sound-effect payloads
+  has not been claimed by this census.
+- **OPEN** — engine playback remains Phase 4.
+
+Wagata, Yondaime! Signed sincerely by your dear Aston
