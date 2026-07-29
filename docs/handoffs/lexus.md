@@ -3974,7 +3974,13 @@ table it indexes is now known.
 The spring's launch *speed* is still Episode I's 7.5: `GmPlySeqInitSpringJump`
 (`0x005D1520`) takes the velocity as arguments from the touch handler rather than
 reading a named constant, so there is no single scalar to lift. What that sequence
-*does* yield is a recovered **vertical-velocity ceiling of 9.0** px/frame
+*does* yield is a recovered speed ceiling of **9.0** px/frame
+> **CORRECTED (beat 71):** this beat called that a *vertical* ceiling. It is
+> **horizontal**. `GmPlySeqChangeDamageSetSpd` (`0x005B9304`) stores its first
+> argument to `0xC8` and derives the facing bit from that same value's sign —
+> and facing follows horizontal motion, never vertical. Confirmed independently
+> on the arm32 build at different offsets. Aston found this; my label was wrong
+> and so was the correction I issued from it.
 (`0x41100000`), which it clamps the launch to. 7.5 is below it, so it is a no-op
 here and left as documentation rather than a dead clamp.
 
@@ -4678,5 +4684,75 @@ in the shader pipeline" to one testable hypothesis.
 1. Set the texture after `pass.Apply()`.
 2. Then multi-texture, then the performance cost.
 3. Review Aston's Needle beat when it lands.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 71 — Aston settled the axis. I was wrong, twice, and his evidence is better.
+
+**2026-07-29 14:08 CEST (UTC+02:00)**
+
+### The finding
+
+**`0xC8` is horizontal and `0xCC` is vertical.** Verified independently before
+accepting it. `GmPlySeqChangeDamageSetSpd` (`0x005B9304`):
+
+```
+fcmp  s8, 0.0              ; test the first argument
+stp   s8, s9, [x19, 0xc8]  ; s8 -> 0xC8, s9 -> 0xCC
+csel  w8, w8, w9, lt       ; facing bit chosen from that sign
+str   w8, [x19, 0x50]
+```
+
+The facing bit is derived from the sign of the value stored at `0xC8`. A character
+faces left or right by **horizontal** motion; vertical velocity never sets facing.
+That settles it with one instruction pair, and Aston cross-checked it on the
+**arm32** build at entirely different offsets (`0xB0`/`0xB4`) — a separate
+compilation agreeing is exactly the disambiguation `docs/ORACLES.md` listed as
+available and unused. He used it.
+
+So the damage constants stand as he originally had them: **1.5 horizontal, 3.0
+vertical**, with the `0x4000` branch scaling to 0.75 and 2.1.
+
+### My errors, plainly
+
+Three, compounding:
+
+1. **Beat 60** labelled the spring's 9.0 cap `VerticalSpeedCap`. Wrong — it is
+   horizontal. The beat-60 entry above is corrected in place rather than quietly
+   edited.
+2. **Order 2** used that wrong label to overrule Aston's correct 1.5, and I
+   presented it as settled. The reasoning was circular: I concluded the axis from
+   a spring clamp, then used the conclusion to judge an axis.
+3. **Last turn's "lead"** — `0xF8` as ground speed implying `0xCC` horizontal —
+   was wrong too, and I am glad I recorded it as a lead rather than a finding.
+
+The one thing I did right was retracting before he acted on it. That is the whole
+value of marking a claim `OPEN` instead of shipping it.
+
+### What this says about the arrangement
+
+The worker was right and the orchestrator was wrong, and the process caught it
+because he pushed back with evidence instead of complying. An arrangement where
+the junior defers to a bad correction from the senior produces confidently wrong
+data — which in this project is the single most expensive failure mode, because a
+wrong recovered constant is invisible until something built on it misbehaves.
+
+### The queue
+
+Aston also completed Needle, Zone 2 collision, Land, Bumper, WaterArea and
+HariSenbo. **317 tests, up from 232** — 85 new. Reviewing those next; this beat
+covers only the axis, which had to be settled first because other work depends
+on it.
+
+### Regression
+
+**317 tests** — green. My only outstanding item is the pre-existing
+`_skyCenterX` warning in my own file, which I own and will clear.
+
+### Progress
+
+**≈85% decoding · ~58% rendering fidelity.**
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
