@@ -387,3 +387,105 @@ Wagata, Yondaime! Signed sincerely by your dear Aston
 - **OPEN** — Bumper is next.
 
 Wagata, Yondaime! Signed sincerely by your dear Aston
+
+---
+
+## Bumper — Episode Metal launch surfaces
+
+**2026-07-29 12:09 CEST (UTC+02:00)**
+
+### Placement evidence
+
+- **VERIFIED** — Episode II contains **261 `Bumper` placements across three
+  acts**, all in Episode Metal Zone 2: 118 in `ZONE21_MAP`, 65 in
+  `ZONE22_MAP` and 78 in `ZONE23_MAP`.
+- **VERIFIED** — the class-only object-id totals are 150:66, 151:65, 152:56,
+  153:62, 154:1, 155:0, 156:1, 157:0, 158:4 and 159:6. All 261 placements
+  have zero flags and zero parameters in the shipped data.
+- **VERIFIED** — ids 148/149 are the separate `UpBumperL`/`UpBumperR` class,
+  and ids 166/167 are the separate `EnBmpr` class. Construction uses
+  `ObjectCatalog.Is(..., "Bumper")`; neither neighboring behavior is mounted.
+
+### Episode II oracle
+
+- **VERIFIED** — the arm64 symbols place `GmGmkBumperBuild` at `0x00523F48`,
+  `GmGmkBumperFlush` at `0x00523F94`, `GmGmkBumperInit` at `0x00523FCC` and
+  the collision callback at `0x00524278`.
+- **VERIFIED** — `GmGmkBumperInit` indexes by object id minus 150. Its
+  10-entry A16 angle table at `0x0095F4A4` is **32768, 0, 16384, 49152,
+  16384, 0, 32768, 49152, 0, 16384**.
+- **VERIFIED** — the signed-short hitbox table at `0x0095F4B8` is:
+  150 `[-48,0,48,28]`, 151 `[-48,-28,48,0]`,
+  152 `[0,-48,28,48]`, 153 `[-28,-48,0,48]`,
+  154 `[0,0,64,64]`, 155 `[0,-64,64,0]`,
+  156 `[-64,0,0,64]`, 157 `[-64,-64,0,0]`,
+  158 `[-24,-8,24,8]` and 159 `[-8,-24,8,24]`.
+- **VERIFIED** — the callback loads **±4 horizontal** and **±6 vertical**
+  launch limits at `0x00524584–0x00524594`. Its directional branches use
+  5-pixel diagonals, 3-pixel off-center deflection, ±8-pixel direction
+  thresholds and a native Y origin shifted upward by 3 pixels. The final
+  clamps are at `0x005247E8–0x005247F8`.
+- **VERIFIED** — the ten variants launch down, up, right, left, the four
+  diagonals, vertical-or-horizontal and horizontal-or-vertical respectively.
+  Horizontal launches lock control for **15 frames**; direct vertical and
+  diagonal launches lock it for **5 frames**.
+- **VERIFIED** — `GmPlySeqInitPinballAir` begins at `0x005D36E4` and stores
+  the caller's no-move duration at player offset `0x68` at `0x005D37FC`.
+  Its main decrements that duration and restores control at zero; normal
+  airborne gravity continues during the lock.
+- **VERIFIED** — variants 150-157 apply the native half-plane tests in
+  addition to rectangular overlap. The callback rejects a point when the
+  directed-edge cross product is less than or equal to zero. Variants 158/159
+  use their rectangular hitboxes without the sloped-face filter.
+- **INFERRED** — Episode I's public-domain implementation was used only as a
+  semantic cross-check after the Episode II tables and arm64 branches were
+  recovered. No numeric value was borrowed from Episode I.
+
+### Implementation
+
+- **VERIFIED** — `Bumpers` preserves every recovered hitbox and angle, performs
+  player-AABB overlap plus the variant-specific sloped-face rejection, carries
+  incoming velocity through off-center deflection, clamps in native axes and
+  converts the result to this port's Y-up world frame.
+- **VERIFIED** — contact is edge-triggered per bumper. Remaining inside a valid
+  face cannot launch every frame; leaving the valid shape and entering it again
+  can launch again.
+- **VERIFIED** — `Player.LaunchFromBumper` cancels damage and active movement
+  sequences, starts airborne motion, and suppresses steering for the recovered
+  5 or 15 frames while gravity continues. Landing ends the lock immediately.
+- **VERIFIED** — `GameEngine.Behaviours.cs` mounts the class-filtered behavior
+  and schedules `GM_BUMPER` at object priority after `GM_NEEDLE`.
+- **INFERRED** — native collision is represented through this port's
+  axis-aligned `Player` body and center. Launch tables, face equations,
+  thresholds and timing are Episode II's; exact native rectangle callback
+  ordering is not claimed.
+
+### Regression
+
+- **VERIFIED** — the focused suite was first observed RED with `CS0246`
+  because `Bumpers` did not exist. It turned GREEN only after the production
+  behavior and player sequence were implemented.
+- **VERIFIED** — focused Bumper suite: **27/27 green**. Coverage includes
+  class filtering, all ten hitbox/angle entries, all ten launch variants,
+  deflection and clipping, the 3-pixel origin correction, sloped-face
+  rejection, leave-before-refire, five-frame control lock, and the real
+  118-bumper Zone 2 Act 1 engine mount.
+- **VERIFIED** — `dotnet test src`: **291/291 green**, 0 failed.
+- **VERIFIED** — `dotnet build src` and the separate Android head both
+  succeeded with 0 errors using the ordered SDK/JDK paths, `-m:1` and
+  `JAVA_TOOL_OPTIONS=-Xmx256m`.
+- **OPEN** — both builds report the existing `CS0414` warning in Lexus-owned
+  `StageViewerGame._skyCenterX`; no Aston-owned file reports a warning.
+
+### Still open
+
+- **OPEN** — hit animation, model deformation, effects, sound and vibration are
+  not represented.
+- **OPEN** — placement flag bit 0 reaches the native no-recover-homing argument,
+  but all 261 shipped Bumper placements have zero flags and this port has no
+  homing-recovery subsystem.
+- **OPEN** — `Player.Width` and `Player.Height` remain explicitly marked
+  Episode I's and not recovered from Episode II.
+- **OPEN** — WaterArea is next.
+
+Wagata, Yondaime! Signed sincerely by your dear Aston
