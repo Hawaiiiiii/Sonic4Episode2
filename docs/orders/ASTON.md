@@ -381,3 +381,93 @@ they likely carry act-flow structure and are worth understanding regardless.
 Same rules throughout: recover constants from Episode II, mark anything unproven
 `OPEN`, **a constant is not recovered until you know which field it is written
 to**, tests per unit, one beat per deliverable, commit and push each.
+
+---
+
+# Order 6 — Decode ADX, and mind the 711 sound effects Phase 1 never saw
+
+Phases 1 and 2 accepted. I re-verified both independently rather than reading
+your report: the CPK header numbers check out against my own read of the file,
+your offset arithmetic closes exactly on `EtocOffset`, and `cri.py identify`
+reproduces your census on my run — 55 files, 94 streams, all ADX, 53 files at
+48 kHz stereo plus one mono and one stereo at 44.1 kHz. Your eight Python tests
+pass alongside my rendering changes. Good work, and the evidence ledger made
+checking it fast, which is the point of keeping one.
+
+## One risk is gone, and one thing is bigger than we thought
+
+**There is no HCA anywhere in this build.** Order 5 hedged phase 3 against HCA
+resisting, and told you to abandon it if it did. That hedge is now moot — every
+waveform in the game is ADX, which is the documented, tractable one. Proceed with
+confidence rather than caution.
+
+**But the CPK is the smaller half of the audio.** I checked where sound effects
+live, because the CPK's 94 streams are all long 48 kHz stereo music and a game
+needs far more than that. They are embedded directly in the `.CSB` banks, which
+your Phase 1 did not extract:
+
+| Bank | Embedded ADX |
+|------|-------------:|
+| `EP1_SND_FX.CSB` | 79 |
+| `EP2_SND_FX_Z1.CSB` | 135 |
+| `EP2_SND_FX_Z2.CSB` | 117 |
+| `EP2_SND_FX_Z3.CSB` | 127 |
+| `EP2_SND_FX_Z4.CSB` | 121 |
+| `EP2_SND_FX_ZF.CSB` | 132 |
+| **Total** | **711** |
+
+**VERIFIED, 711 of 711.** Every `(c)CRI` occurrence in those files has a valid
+ADX header sitting behind it at exactly the offset the header's own
+`copyright_offset` field predicts, with a sane rate and channel count. 691 are
+mono and 20 stereo; rates run 11,025 / 16,000 / 22,050 / 32,000 / 44,100 / 48,000
+with 32 kHz the most common. That is the shape of a sound-effects bank, and it is
+about eight times the number of waveforms the CPK holds. `SONICDL_SNG01.CSB` has
+none, which fits — its audio is the streamed CPK, so that file is pure metadata.
+
+The useful part: **it is the same codec**, so one decoder serves both, and a short
+mono effect is a far better first audible sound than a multi-megabyte streamed
+music track.
+
+## Your phases, revised
+
+**Phase 3 — decode ADX to PCM.** Unchanged and now the critical path. You already
+have 94 streams on disk to test against. ADX is ADPCM with a documented predictor;
+FFmpeg's decoder is a legitimate *reference for the format*, and you already cited
+it — keep treating it as a specification to read, not code to copy. Write your own.
+
+Verify it the way you have been verifying everything else: decoded output should
+have the sample count the header declares, no clipping outside range, and silence
+where the source is silent. A decoder that produces plausible noise is the failure
+mode to guard against.
+
+**Phase 3b — extract the 711 from the CSB banks.** Mechanical once Phase 3 works,
+and I have handed you the header-location rule above so you are not searching
+blind. Same fail-closed discipline as your CPK extractor: validate every header,
+reject anything whose declared size overruns its container, and never write a file
+you could not parse.
+
+**Phase 4 — play one sound.** Pick a short mono effect, not a music track. Loop
+points and stream pairing are real problems on the music side and you should not
+meet them on the same beat you first make noise come out. `SoundEffect` or
+`DynamicSoundEffectInstance` takes a PCM buffer directly.
+
+**Then, and only then, the music.** 94 streams across 55 files means these are
+multi-stream containers, almost certainly intro-plus-loop pairs — game music
+loops, and where it loops is data, not a guess. Look for the loop fields in the
+ADX header before inventing a scheme.
+
+## Standing rules, unchanged
+
+Truthfulness, the evidence ledger with `VERIFIED` / `INFERRED` / `OPEN`, recover
+rather than borrow, a test per unit, smallest correct change, lawful scope only,
+and no raw game data in the repository. The stop rule still applies: three
+failures on the same error means you report rather than attempt a fourth.
+
+## File boundaries
+
+Unchanged and they have been working — your `tools/cri.py`, `tools/test_cri.py`
+and `docs/handoffs/aston.md`; my `src/Sonic4Episode2.Desktop/**`,
+`src/Sonic4Episode2.Core/StageAssembler.cs` and `src/Sonic4Episode2.Core/Assets/**`.
+If Phase 4 needs engine-side playback code, take
+`src/Sonic4Episode2.Core/Engine/Audio*.cs` as yours and tell me in your beat; I
+will stay out of it.

@@ -245,7 +245,10 @@ phase 3 ~98%, phase 4 ~60%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
 **325 tests, all green.** Last beat: 73 (Lexus). Aston's behaviour queue is
 complete through HariSenbo; on the audio track he has CPK extraction and the
 codec census done (55 AAX files, 94 streams, all ADX, no HCA) with ADX decoding
-next. Everything committed and
+next, under Order 6. **The CPK is the smaller half of the audio:** 711 more ADX
+waveforms are embedded directly in the `.CSB` sound-effect banks (VERIFIED 711/711
+— see `docs/FORMAT-CRI.md`), 691 of them mono. Same codec throughout and no HCA
+anywhere, so one decoder serves everything. Everything committed and
 pushed.
 
 **Recent structural progress (beats 58-61):**
