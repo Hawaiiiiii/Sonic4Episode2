@@ -823,3 +823,76 @@ Wagata, Yondaime! Signed sincerely by your dear Aston
 - **OPEN** — engine playback remains Phase 4.
 
 Wagata, Yondaime! Signed sincerely by your dear Aston
+
+---
+
+## Audio Phase 3 — decode ADX to PCM
+
+**2026-07-29 18:29 CEST (UTC+02:00)**
+
+### Episode II evidence
+
+- **VERIFIED** — all **94/94** streamed-music payloads across all 55 AAX files
+  decode without error. Their PCM buffers contain exactly **245,036,835 signed
+  16-bit channel values**, and every buffer length equals the header's declared
+  sample count × channel count × two bytes.
+- **VERIFIED** — five Episode II streams covering mono 44.1 kHz, stereo
+  44.1/48 kHz, and both rows of a two-stream AAX were independently decoded by
+  FFmpeg 8.1. All **4,246,065 values matched sample-for-sample** through the
+  declared sample counts. FFmpeg emits only the final ADX block's padding after
+  those points; this decoder deliberately trims it.
+- **VERIFIED** — the real `dummy_wav` payload declares 17,933 mono frames and
+  decodes to exactly 17,933 zero samples. The CLI wrote a 44.1 kHz, 16-bit mono
+  WAV with 17,933 frames and no nonzero PCM byte.
+- **VERIFIED** — the corpus-wide decode took **376.9 seconds** in CPython. That
+  proves this analysis decoder is complete, not that it is suitable for
+  real-time engine streaming.
+
+### Implementation
+
+- **VERIFIED** — `decode_adx` independently implements encoding-3 ADX: predictor
+  coefficients from the header cutoff and sample rate, 18-byte channel blocks,
+  high-then-low signed residual nibbles, separate predictor history per channel,
+  stereo interleave, signed-16 saturation and declared-count trimming.
+- **VERIFIED** — a declared sample span that overruns the payload fails closed
+  with `CriError`. An ADX end marker encountered before the declared count also
+  fails rather than being interpreted as a scale.
+- **VERIFIED** — `tools/cri.py decode <input.adx> <output.wav>` writes
+  uncompressed, interleaved signed-16 PCM with the source channel count, sample
+  rate and exact declared frame count.
+- **VERIFIED** — no Episode I value or implementation was used, and no reference
+  decoder expression was copied. The implementation was written from the ADX
+  format's predictor and block facts, then compared to FFmpeg only as an
+  independent output oracle.
+
+### Regression and gates
+
+- **VERIFIED** — the decoder API, stereo path, saturation, truncation guard,
+  early-end guard and CLI each had an observed RED result before their production
+  change. The silence test separately rejected a deliberate nonzero-history
+  mutation before zero initialization was restored.
+- **VERIFIED** — focused Python suite: **15/15 green**. It pins literal,
+  hand-derived PCM for mono, stereo and 16 kHz fixtures plus clipping, silence,
+  declared-count truncation, early termination and WAV metadata/content.
+- **VERIFIED** — `python tools/cri.py verify ..\SOUND`: **8 containers parsed,
+  0 failed**.
+- **VERIFIED** — `dotnet test src --no-restore`: **325/325 green**, 0 failed.
+- **VERIFIED** — the final whole-solution and separate Android builds succeeded
+  with **0 warnings and 0 errors** using the ordered SDK/JDK paths and
+  `JAVA_TOOL_OPTIONS=-Xmx256m`.
+- **OPEN** — a clean Core compilation during the test gate surfaced two existing
+  `CA2014` warnings at Lexus-owned `StageAssembler.cs:191-192`; no Aston-owned
+  file warns.
+
+### Still open
+
+- **OPEN** — Order 6 Phase 3b must extract and validate the 711 ADX sound effects
+  embedded in the six CSB banks. This beat did not write or commit any of them.
+- **OPEN** — the raw-payload decoder does not yet surface ADX loop metadata or
+  join the paired streams in music AAX files. No loop point is guessed.
+- **OPEN** — CPython decoded the complete music corpus correctly but not in real
+  time. Phase 4 engine playback needs a native C# path or equivalent performance
+  work and remains a separate beat.
+- **OPEN** — no sound is played by the engine yet.
+
+Wagata, Yondaime! Signed sincerely by your dear Aston
