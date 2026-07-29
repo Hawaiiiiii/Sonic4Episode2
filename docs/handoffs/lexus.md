@@ -4604,3 +4604,79 @@ no number, and saying otherwise would be the dishonest kind of progress.
 3. Review Aston's damage beat when he reports.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 70 — The black shader, diagnosed down to one remaining suspect
+
+**2026-07-29 04:37 CEST (UTC+02:00)**
+
+Beat 69 left the custom effect rendering black with two guesses ruled out. This
+beat replaced guessing with a diagnostic and narrowed it to one thing.
+
+### The flat-colour test settled the big question
+
+Added a `DiagnosticFlat` technique — same vertex shader, pixel shader returns a
+fixed colour — selectable at runtime with `STAGE_FX=flat`. **The stage rendered in
+magenta with a perfect silhouette**: castle skyline, the tree, the rings, Sonic,
+all exactly where they belong (`analysis/flat-test.png`).
+
+That is conclusive. **The transform, the vertex buffer, the index buffer and
+rasterisation are all correct.** The fault is entirely in shading. One run
+eliminated the whole matrix-convention branch of the search that beat 69 was
+guessing at.
+
+### Also fixed the capture problem for good
+
+Three captures this session grabbed the wrong window or wrote nothing, and I was
+fighting Win32 foreground rules. **The viewer already has `--screenshot`**, which
+renders N frames, writes a PNG and exits — deterministic, no window juggling.
+Using that from now on; `SCREENSHOT_FRAME` controls the frame. Should have looked
+before building a worse tool.
+
+### Ruled out, each by testing rather than reasoning
+
+| Suspect | Result |
+|---|---|
+| `SV_POSITION` semantic on a `vs_3_0` target | Not it — changed to `POSITION0`, still black |
+| Matrix packing via `row_major` | Not available — MGFX rejects it outright |
+| Matrix convention generally | **Not it — the flat test proves the transform** |
+| `sampler_state` form not binding under MojoShader | Not it — moved to `register(s0)` + device slot, still black |
+| Parameter names not surviving compilation | Not it — all five are present in the compiled `.mgfx` |
+
+### The one suspect left
+
+Geometry is black, parameters bind, and ambient alone would make it *dim*, not
+black — so `texel * MaterialDiffuse` must be resolving to zero, meaning **the
+texture still is not reaching the sampler**. The remaining candidate is ordering:
+`GraphicsDevice.Textures[0]` is assigned *before* `pass.Apply()`, and MonoGame may
+overwrite device texture state during `Apply`. Next attempt sets it after.
+
+Worth noting the effect is also **much slower** than `BasicEffect` — 40 frames did
+not complete in 180 seconds where the flat technique did. Per-pixel lighting over
+3.8M triangles with this overdraw is a real cost and will need attention once it
+draws correctly.
+
+### The repo is safe
+
+The effect is **opt-in via `STAGE_FX`**, unset by default, so the stage draws
+through `BasicEffect` exactly as before. Nothing is broken by this work sitting in
+the tree.
+
+### Regression
+
+**232 tests** — green.
+
+### Progress
+
+**≈84% decoding · ~56% rendering fidelity.** Unchanged again, honestly: a
+diagnosis is not a pixel. What moved is that the search space went from "somewhere
+in the shader pipeline" to one testable hypothesis.
+
+### Next
+
+1. Set the texture after `pass.Apply()`.
+2. Then multi-texture, then the performance cost.
+3. Review Aston's Needle beat when it lands.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
