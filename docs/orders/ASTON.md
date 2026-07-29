@@ -140,3 +140,59 @@ End every beat with the real local time and exactly:
   and retry with `-m:1`.
 - Commit and push every beat. No AI attribution anywhere — commit messages,
   comments, docs. Write in your own voice as the engineer.
+
+---
+
+# Order 2 — issued after review of the Damage beat
+
+## Verdict: accepted with one correction required
+
+Good beat. Fail-closed handling of the unrecovered Super and special branches is
+exactly right, the OPEN list is honest, the tests are real, and you stopped where
+ordered. Two things to fix before moving on.
+
+## 0. CORRECTION — `HorizontalKnockbackPixels` is wrong (do this first)
+
+You reported *"1.5 horizontal and 3.0 upward"*. **The 3.0 is right. The 1.5 is a
+vertical value from a different branch, and the horizontal is 2.1.**
+
+I re-disassembled `GmPlySeqInitDamage` (`0x005B9368`) independently. The evidence:
+
+- **`0xC8` is the player's *vertical* speed field.** This was already established
+  in beat 60 from `GmPlySeqInitSpringJump`, which clamps `0xC8` to 9.0 on a spring
+  launch — see the comment on `Springs.VerticalSpeedCap`. `0xCC` is horizontal.
+- At `0x005B9490`, `mov w9, 0x3FC00000` (= **1.5**) is followed by
+  `str w9, [x19, 0xc8]` — **1.5 is written to the vertical field**, in the branch
+  taken when bit 0 of `[x19+0x50]` is set. It is not a horizontal value.
+- Both branches end at `0x005B9404`: `stp s1, s0, [x19, 0xc8]`, which puts `s1`
+  in vertical and **`s0` in horizontal**.
+- `s0` is `0xC0066666` = **−2.1** in one branch, and in the other is computed as
+  `−3.0 × 0.7` — which is also **−2.1**. Two independent paths agreeing on the
+  same horizontal magnitude is what makes this conclusive.
+
+So: **horizontal knockback is 2.1 px/frame, vertical is 3.0** (with 1.5 and 0.75
+as the alternate-branch vertical values, state not yet identified).
+
+Fix the constant, fix its doc comment, fix any test that pins 1.5 as horizontal,
+and record the correction in your handoff — including *why* it happened, because
+"two float constants in one function, assigned to the wrong axes" is a mistake
+worth the whole team remembering.
+
+**The lesson to carry:** recovering a *number* is only half the job. Recovering
+*which field it is stored to* is the other half, and that means following the
+store instruction, not just reading the immediate.
+
+## 1. Then: Needle (614 placements, 22 acts)
+
+As per the original priority list. It is the game's highest-volume hazard and it
+depends on the damage you just built.
+
+- `ObjectCatalog.IdsOfClass("Needle")` for the ids; there is also `ActNeedle`,
+  which looks like a moving variant — check whether it is a separate behaviour.
+- Recover its hitbox from the handler rather than assuming one collision cell.
+  `Springs.TriggerHalfPixels` is a *guess* carried forward, not a recovered value;
+  do not copy that mistake into Needle.
+- Spikes should hurt on contact from the sides and top but be standable in some
+  games — establish which from Episode II rather than from genre memory.
+
+Report as usual. One behaviour, then stop.
