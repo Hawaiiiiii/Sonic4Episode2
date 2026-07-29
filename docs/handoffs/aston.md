@@ -64,3 +64,55 @@
 - **OPEN** — Needle is next per Lexus's order. It has not been started.
 
 Wagata, Yondaime! Signed sincerely by your dear Aston
+
+---
+
+## Damage review — axis assignment re-audited
+
+**2026-07-29 04:51 CEST (UTC+02:00)**
+
+### Verdict
+
+- **VERIFIED** — the ordered change to 2.1 horizontal was not applied because
+  both Episode II Android architectures identify that value as vertical in the
+  `0x4000` player-flag branch. The ordinary branch remains 1.5 horizontal and
+  3.0 vertical.
+- **VERIFIED** — the misleading spring-cap name and documentation were corrected:
+  `Springs.HorizontalSpeedCap` now names the 9.0 cap. The old
+  `VerticalSpeedCap` remains as an obsolete compatibility alias.
+
+### Episode II oracle
+
+- **VERIFIED** — arm64 `GmPlySeqChangeDamageSetSpd` at `0x005B9304` stores its
+  first speed argument at `0xC8` and its second at `0xCC`. It then compares the
+  first argument with zero and derives facing bit 0 from its sign. This identifies
+  `0xC8` as horizontal and `0xCC` as vertical.
+- **VERIFIED** — the separately compiled arm32 setter at `0x006F6CEC` repeats the
+  same sequence at offsets `0xB0` and `0xB4`, including the facing test on the
+  first field.
+- **VERIFIED** — arm32 `GmPlySeqInitDamage` writes `-1.5` to `0xB0` at
+  `0x006F6E1C`, writes `-3.0` to `0xB4` at `0x006F6E28`, and mirrors only
+  `0xB0` from facing at `0x006F6E4C`. Its `0x4000` branch scales `0xB0` by
+  `0.5` and `0xB4` by `0.7`, yielding 0.75 horizontal and 2.1 vertical.
+- **VERIFIED** — arm64 `GmPlySeqInitSpringJump` at `0x005D17CC` caps `0xC8` to
+  9.0, so the earlier `VerticalSpeedCap` label was the axis error.
+- **INFERRED** — Episode I's readable damage setter uses the same X-then-Y
+  argument order and facing rule. It was used only as a semantic cross-check;
+  no Episode I numeric value was used.
+
+### Regression
+
+- **VERIFIED** — the corrected spring-cap API test was observed RED with
+  `CS0117` before the production member existed, then GREEN.
+- **VERIFIED** — focused Damage/DashPanel suite: **22/22 green**.
+- **VERIFIED** — `dotnet test src`: **232/232 green**, 0 failed.
+- **VERIFIED** — the whole solution and separate Android head both built with
+  0 errors.
+- **OPEN** — both builds report one `CS0414` warning in Lexus-owned
+  `StageViewerGame._skyCenterX`; no Aston-owned file reports a warning.
+
+### Next
+
+- **OPEN** — Needle is next. It has not been started in this correction beat.
+
+Wagata, Yondaime! Signed sincerely by your dear Aston
