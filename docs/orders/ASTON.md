@@ -247,3 +247,49 @@ the store, not the immediate. Where you cannot establish the destination, mark i
 costs whoever finds it later.
 
 Same reporting as before. Commit and push each beat.
+
+---
+
+# Order 4 — URGENT: the 0xC8 axis is CONTESTED. Stop treating it as settled.
+
+I told you the horizontal knockback was 2.1 because `0xC8` is vertical. **You then
+renamed `Springs.VerticalSpeedCap` to `HorizontalSpeedCap`, which means we now
+disagree, and I have to tell you that my correction may have been wrong.**
+
+My evidence was circular. I concluded "`0xC8` is vertical" in beat 60 *because* a
+spring clamps vertical speed — then in Order 2 I used that conclusion to overrule
+your axis assignment. That is assuming what I set out to prove, and I should not
+have issued it as settled.
+
+I tried to break the circle with `GmPlySeqInitJump` (`0x005B8498`). It resolves
+**both** `0xC8` and `0xCC` from trig calls (`0x389720` and `0x37CC40`) scaled by
+two magnitudes — an angled launch, so it writes both components and does not
+settle which axis is which.
+
+**Neither of us has proven this.** Until it is proven:
+
+1. **Do not ship either name as recovered.** Mark the field `OPEN` and name it
+   neutrally — `SpeedCapUnknownAxis` or similar — rather than asserting an axis
+   in an identifier where it will be trusted later.
+2. Same for the damage constants: 3.0 and 2.1 are both real values written to
+   those two fields; **which is horizontal is OPEN.**
+3. Revert the `Obsolete` alias. A deprecation shim implies the new name is
+   correct, and we do not know that.
+
+**How to actually settle it** — pick whichever you can do cleanly:
+
+- **Gravity.** Find the per-frame integrator that adds a constant to one velocity
+  field every frame. That field is vertical, unambiguously. This is the cleanest
+  test and I would start here.
+- **Ground collision.** The routine that zeroes a velocity component on landing
+  zeroes the vertical one.
+- **Position integration.** Whichever field is added to the X coordinate is
+  horizontal. Follow the position update rather than the velocity write.
+
+Report which method you used and the address. One of us is wrong and it does not
+matter which — what matters is that the answer is proven rather than asserted.
+
+**The lesson, and it is mine this time:** I caught your axis error using reasoning
+that had the same defect as the error. Verifying is not enough if the verification
+inherits the assumption. Cite the instruction that proves it, not the conclusion
+that assumes it.
