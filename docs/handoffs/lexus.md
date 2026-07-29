@@ -4246,3 +4246,67 @@ emits one normal per vertex).
 3. Mobile validation; damage and enemies.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 65 — Materials bind up to five textures, not one
+
+**2026-07-29 02:05 CEST (UTC+02:00)**
+
+The engine's shader has nine sampler slots. Our decoder read exactly one texture
+per material. This closes that gap on the decode side.
+
+### The stage array
+
+A material declares a **stage count at `+0x14`** and points at an array of
+**32-byte stage records at `+0x18`**; each is `u32 flags`, `u32 index` into the
+model's texture list, then floats. We had been reading the first record's index
+and stopping.
+
+The census settles it, and self-validates: **6,967 materials carry one stage, 987
+two, 617 three, 735 four, 125 five, and 336 none — summing to 9,767, exactly the
+material count.** So **2,464 materials bind more than one texture** and the
+renderer has been drawing only their base map. Across the build all **14,357
+stage indices resolve in range, 0 out of range**, which confirms the 32-byte
+stride independently.
+
+### Flag families
+
+Stage flags separate cleanly by observation. `0x60000002` is the diffuse base and
+is stage 0 on 8,808 materials. `0x60000004` is an environment map, usually stage
+2 (1,255 of them). A third family — `0x00010001`, `0x00020002`, `0x00030003` —
+mirrors its low half into its high half, leaves the top nibble clear, sits in odd
+slots and repeats index 0; that reads as inert padding rather than a live stage,
+so `NnTextureStage.IsLive` tests the top nibble.
+
+`C01_TORNADO` is the clean worked example: four stages resolving to
+`tr_mark02_dif`, padding, `gmk_tr_env`, padding — a diffuse base plus a
+reflection map, which is exactly what a shiny vehicle should have.
+
+**Roles beyond base and environment are not confirmed** and are flagged as such;
+the shader's decal/modulate/add/opacity slots exist but which flag selects which
+is not yet read from Episode II's data.
+
+### Scope, honestly
+
+This is the **decode**, complete and verified. It does not yet change a pixel:
+`BasicEffect` has no multi-texture path, so consuming a second stage needs the
+custom shader work. `TextureFor` still returns the base map and the existing
+render is untouched by design — a test pins that.
+
+### Regression
+
+Whole solution including Android · **217 tests** — green (4 new).
+
+### Progress
+
+**≈82% decoding · ~55% rendering fidelity.** Decode moves, pixels do not yet.
+
+### Next
+
+1. The shader path that can actually consume stage 2 — env maps are 1,255
+   materials of visible shine.
+2. apitrace capture for the real light parameters and permutation binding.
+3. Mobile validation; damage and enemies.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
