@@ -692,3 +692,69 @@ Wagata, Yondaime! Signed sincerely by your dear Aston
 - **VERIFIED** — Aston's ordered behavior queue is complete.
 
 Wagata, Yondaime! Signed sincerely by your dear Aston
+
+---
+
+## Audio Phase 1 — extract the CPK
+
+**2026-07-29 14:58 CEST (UTC+02:00)**
+
+### Episode II evidence
+
+- **VERIFIED** — `SONICDL_SNG01.CPK` is 137,851,952 bytes. Its `CpkHeader`
+  gives `TocOffset = 0x800`, `TocSize = 0xCE0`,
+  `ContentOffset = 0x15D0`, `ContentSize = 137,845,584`,
+  `EtocOffset = 0x8377120`, and `Files = 55`.
+- **VERIFIED** — the `TOC ` chunk at `0x800` wraps an `@UTF` table named
+  `CpkTocInfo` with exactly 55 rows and seven columns:
+  `DirName`, `FileName`, `FileSize`, `ExtractSize`, `FileOffset`, `ID`, and
+  `UserString`.
+- **VERIFIED** — file offsets use the lower of `TocOffset` and
+  `ContentOffset` as their base in this archive. The first relative offset,
+  3,536, plus `0x800` lands exactly at `ContentOffset`; the final file ends
+  exactly at `EtocOffset`.
+- **VERIFIED** — all 55 rows have equal stored and extracted sizes, unique
+  paths, and unique IDs 0 through 54. Every row is under `Synth`; their stored
+  sizes total 137,845,584 bytes, exactly `ContentSize`.
+
+### Implementation
+
+- **VERIFIED** — `tools/cri.py extract <file.cpk> <output>` walks the header and
+  wrapped TOC, validates the declared file count, resolves each file offset,
+  creates the recorded directory structure, and writes every stored payload.
+- **VERIFIED** — the extractor rejects parent/absolute/drive-qualified paths,
+  duplicate output paths, truncated payload spans, and entries whose stored and
+  extracted sizes differ. It cannot silently label packed bytes as decoded
+  output.
+- **VERIFIED** — the real archive produced 55 files, 55 distinct TOC paths, and
+  137,845,584 output bytes. A separate comparison checked every extracted file
+  against its source slice: **55/55 byte-exact**. The disposable extraction
+  directory was then removed; no raw game data was added to the repository.
+
+### Regression
+
+- **VERIFIED** — the first extractor test was observed RED because argparse
+  rejected `extract` as an invalid command. Separate RED runs also proved that
+  missing count, path, packed-entry, bounds, and duplicate-path checks were
+  caught before each corresponding guard was restored.
+- **VERIFIED** — focused Python suite: **6/6 green**.
+- **VERIFIED** — `python tools/cri.py verify ..\SOUND`: **8 containers parsed,
+  0 failed**.
+- **VERIFIED** — `dotnet test src --no-restore`: **322/322 green**, 0 failed.
+  The increase from 317 is Lexus's parallel rendering-test work, not this audio
+  beat.
+- **VERIFIED** — `dotnet build src --no-restore -m:1` and the separate Android
+  build with the ordered SDK/JDK paths and `JAVA_TOOL_OPTIONS=-Xmx256m` both
+  succeeded with **0 warnings and 0 errors**.
+
+### Still open
+
+- **OPEN** — Phase 2 must identify the codec inside each extracted `.aax` and
+  report the sample-rate/channel census. This beat did not inspect waveform
+  headers beyond extracting their exact bytes.
+- **OPEN** — compressed CPK entries are rejected rather than decoded. Episode
+  II's only CPK has none, so all 55 files are delivered without that capability.
+- **OPEN** — ADX/HCA waveform decoding and engine playback remain Phases 3 and
+  4 respectively.
+
+Wagata, Yondaime! Signed sincerely by your dear Aston
