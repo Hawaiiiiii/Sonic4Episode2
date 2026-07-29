@@ -4527,3 +4527,80 @@ rather than guessed, which is the last piece the custom shader needed.
 3. Mobile validation.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 69 — The custom shader pipeline builds, and renders black. Reverted.
+
+**2026-07-29 03:44 CEST (UTC+02:00)**
+
+Attempted the custom effect that the last four beats specified the target for.
+**The pipeline works end to end; the shader does not. Reporting it as a failure
+rather than dressing it up.**
+
+### What does work
+
+- `dotnet-mgfxc` **3.8.5** installed, matching our MonoGame version exactly.
+- `Content/Stage.fx` — my own implementation of the recovered material model:
+  texture modulated by material diffuse, over scene ambient, **lit per pixel** by
+  one parallel light. Written against the recovered facts; nothing copied.
+- It **compiles** to `Stage.mgfx`, the csproj copies it to output, the renderer
+  **loads and binds it** without error, and the act mounts with full geometry —
+  21,890 tiles, 3.8M triangles, the log confirming
+  `stage effect: Stage.mgfx (recovered material model)`.
+
+So the MGFX toolchain, the content copy, the load path and the parameter binding
+are all proven. That part is real and is kept.
+
+### What does not
+
+**The stage renders black.** Geometry, textures and camera are unchanged and were
+working minutes earlier through `BasicEffect`, so the fault is in my shader or in
+how I feed it.
+
+Two causes ruled out, both by trying them:
+
+1. **`SV_POSITION`** is DX10+ syntax and the OpenGL path targets `vs_3_0`.
+   Changed to `POSITION0`. Still black.
+2. **Matrix packing** — HLSL packs column-major by default while MonoGame writes
+   row-major. `row_major matrix` is **rejected outright** by MGFX's parameter
+   writer (`Unsupported parameter class!`), so that lever does not exist here.
+
+Remaining suspects, recorded for the next attempt: the transpose convention
+`EffectParameter.SetValue(Matrix)` applies, and whether `sampler_state` with
+`Texture = <BaseTexture>` actually binds under MojoShader versus needing the
+texture set on the device sampler slot directly.
+
+### What I did about it
+
+Gated it off — `const bool useStageEffect = false` — so the stage draws through
+`BasicEffect` exactly as before. **The renderer is restored, not left broken.**
+The effect, the compiler and the load path stay in the tree as groundwork with
+the failure documented at the call site.
+
+Honest gap in the evidence: I could not get a confirming screenshot of the
+restored render — the capture helper failed to write its file on the last run.
+What I have is that the gate is a single boolean around new code, the fallback is
+the untouched previously-working path, the solution builds, and the suite passes.
+I am not claiming a visual confirmation I do not hold.
+
+### Regression
+
+Whole solution · **232 tests** — green. That count includes Aston's damage work
+landing in parallel; the shader attempt itself adds no tests because it produced
+nothing correct to pin.
+
+### Progress
+
+**≈84% decoding · ~56% rendering fidelity.** Unchanged — a failed attempt moves
+no number, and saying otherwise would be the dishonest kind of progress.
+
+### Next
+
+1. Debug the black draw: transpose convention first, then sampler binding. A
+   flat-colour pixel shader will separate "geometry never reaches the raster"
+   from "shading resolves to black", which is the cheapest next diagnostic.
+2. Then multi-texture: four slots, three nested configurations.
+3. Review Aston's damage beat when he reports.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
