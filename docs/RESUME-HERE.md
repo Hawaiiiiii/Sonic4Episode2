@@ -145,7 +145,7 @@ at `Downloads\unwrap\Sonic.exe.unpacked.exe` (4,301,168 bytes, against Beta 8's
 4,302,848 — nearly the same size). Original untouched. Treat it like every other
 oracle: gitignored, read-only, never a source.
 
-## ⭐ RESUMING? READ THIS BLOCK FIRST (state as of beat 73)
+## ⭐ RESUMING? READ THIS BLOCK FIRST (state as of beat 74)
 
 **Two agents work this repo.** Lexus (orchestrator, sole human interface) holds
 **rendering, RE evidence and review**. Aston holds **gameplay behaviours and
@@ -185,6 +185,27 @@ decode, then one audible cue. Audio is the biggest completely-absent system.
   far higher than the 4.9x first credited: **draw time went from roughly 5.8 s to
   24 ms.**
 
+### Beat 74 — the viewer is playable
+
+- **Zone 1 Act 1 draws in 17.6 ms and Zone F in 20.4 ms** — about 57 and 49 FPS,
+  best of three runs. Was 77.8 and 89.1 ms.
+- **Objects draw as instances.** Each distinct model has its own device buffers,
+  written once for the indices and per frame only for animated vertices; every
+  placement draws that shared geometry with its own translation. Zone 1 was
+  merging 126 placements into a 153,726-vertex array each frame and re-uploading
+  it once per material — thirteen times a frame. Now about 12,000 vertices go up
+  per frame in total.
+- **Object instances are culled on their measured X extent**, computed as the
+  vertices are uploaded, not on a padded origin guess. Here culling removes whole
+  draw calls, which is why it pays off on objects though it did not on the stage.
+- **Captures are not fully reproducible, and this matters when diffing.** Two
+  identical runs differ on 23.9% of pixels, because the camera follows the player
+  and the engine step count varies with machine load. Animation phase is now
+  driven by the frame counter in screenshot mode, which fixes half of it; the
+  simulation half remains. **Only trust a cross-process pixel diff on a static
+  scene** — beat 73's "pixel-exact" cull result was true as observed but not a
+  controlled comparison.
+
 ### And beat 73 — the performance diagnosis in beat 72 was wrong
 
 - **Never wall-clock the process to measure a frame.** Doing that attributes
@@ -221,17 +242,17 @@ decode, then one audible cue. Audio is the biggest completely-absent system.
 
 ### My next three, in order
 
-1. **Stop rebuilding object geometry every rendered frame.** This is now the
-   entire remaining cost: Zone F draws in 70 ms and Zone 1 Act 1 in 120 ms, of
-   which the stage itself is only 18–30 ms. `BuildObjectBuffers` rebuilds the
-   whole object vertex array and batch dictionary each frame. Keep it in GPU
-   buffers and animate by transform instead of re-transforming vertices on the
-   CPU.
-2. **Normal and specular maps.** Roles are decoded (230 + 65 stages) but
+1. **Run it on a phone.** Several open claims now turn on device behaviour —
+   whether culling helps at all, whether the frame budget survives, whether DXT
+   needs transcoding. The APK builds signed and has never been installed. This
+   needs hardware, so it is the director's to unblock.
+2. **The player and the remaining streamed paths.** Sonic is still CPU-skinned
+   every frame and drawn through `DrawUserIndexedPrimitives`; the 99-slot matrix
+   palette is already recovered, so this can move to a vertex shader. Rings and
+   the sky stream too.
+3. **Normal and specular maps.** Roles are decoded (230 + 65 stages) but
    tangent-space normal mapping needs tangents the vertex format does not carry.
    Deliberately not faked.
-3. **Bring the other draw paths across.** Rings, sky and the player still go
-   through `BasicEffect` and still stream their geometry every frame.
 
 ## Where things stand
 
@@ -242,7 +263,7 @@ result). Fidelity is still the lower number, but it now reflects our own recover
 material effect drawing the stage by default, with environment maps and real
 per-material colour, rather than a stock unlit one. Phase 1 ~95%, phase 2 ~99%,
 phase 3 ~98%, phase 4 ~60%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
-**325 tests, all green.** Last beat: 73 (Lexus). Aston's behaviour queue is
+**325 tests, all green.** Last beat: 74 (Lexus). Aston's behaviour queue is
 complete through HariSenbo; on the audio track he has CPK extraction and the
 codec census done (55 AAX files, 94 streams, all ADX, no HCA) with ADX decoding
 next, under Order 6. **The CPK is the smaller half of the audio:** 711 more ADX

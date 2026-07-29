@@ -5036,3 +5036,116 @@ moved performance and corrected the record, and neither is a pixel.
 3. The sky, ring and player paths still stream their geometry too.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 74 — Objects draw as instances, and the act is playable
+
+**2026-07-29 18:14 WEDT (UTC+02:00)**
+
+Beat 73 left the whole remaining frame cost in one place: `BuildObjectBuffers`
+rebuilding every placed object's geometry each rendered frame. That is fixed, and
+the viewer now runs at frame rates worth calling by that name.
+
+### What it was doing
+
+Zone 1 Act 1 places **126 objects drawn from 10 distinct models**, and every
+frame it merged all 126 into a single **153,726-vertex** array, then handed that
+array to `DrawUserIndexedPrimitives` once per material. Thirteen materials meant
+**the same 153,726 vertices crossed the bus thirteen times a frame**, on top of
+rebuilding the array and its batch dictionary from scratch. Zone F did the same
+with 56,833 vertices over 11 materials.
+
+This is the identical fault beat 72 fixed for the stage, still sitting in the
+object path.
+
+### What it does now
+
+Each **distinct model** gets its own device buffers, sized once. Posing changes
+vertex positions but never counts, materials or triangle order, so the index
+buffer and the per-material ranges are written once and stay valid; only the
+vertex data is rewritten, and only for models that actually animate. A static
+model uploads once and is never touched again.
+
+Each placement then draws that shared geometry with its own translation. About
+**12,000 vertices go up per frame instead of two million vertex-uploads**, and
+the merged array is gone entirely.
+
+| | draw, min | |
+|---|---:|---|
+| Zone F, before | 89.1 ms | 11 FPS |
+| Zone F, now | **20.4 ms** | **49 FPS** |
+| Zone 1 Act 1, before | 77.8 ms | 13 FPS |
+| Zone 1 Act 1, now | **17.6 ms** | **57 FPS** |
+
+Best of three runs each, because another job is building on this machine and
+contention only ever pushes a sample upward.
+
+### Culling objects on measured extent, not a padded guess
+
+Instances are culled too, and here it removes **whole draw calls** rather than
+merely shortening one, which is why it is worth doing on objects even though it
+was worth nothing on the stage.
+
+My first attempt culled on the instance origin with a 512-unit pad — a number I
+picked because it felt safely past the biggest object. That is a guess, and a
+guess that is either wasteful or wrong. The X extent is instead **measured from
+the vertices as they are uploaded**, which costs one comparison per vertex on
+data already in hand and makes the test exact: an instance is dropped only when
+its real geometry lies outside the view. For animated models it is recomputed
+each frame, since a pose can reach past the rest extent. The magic number is gone.
+
+### A correction to my own evidence in beat 73
+
+Beat 73 reported the stage cull as pixel-exact, 0 of 921,600 pixels different
+between a culled and an unculled render. That number was real, but I now know it
+was **not a controlled comparison**, and I should not have leaned on it as hard
+as I did.
+
+Running the same command twice with no changes at all produces **23.9% of pixels
+different**. Two causes: object animation was driven by wall-clock time, and the
+camera follows the player, whose position depends on how many engine steps ran
+before the capture — which varies with machine load. So a cross-process pixel
+diff is only trustworthy for a static scene, and beat 73's zero was partly luck.
+
+The animation half is fixed: a screenshot run now drives animation from the frame
+counter, so captures are reproducible in that respect. The simulation half is
+not, and I am recording it as a known limit of the instrument rather than
+pretending otherwise. The better argument for the object cull is that it is
+correct **by construction** from the measured extent, which needs no diff at all.
+
+### Where this leaves the renderer
+
+Zone 1 Act 1 draws in 17.6 ms with our own recovered material shader, environment
+maps, real per-material colour, a skinned animated Sonic and 126 placed gimmicks.
+That is a playable frame budget on this machine for the first time in the
+project. It is not a claim about phones — the Android head has still never run on
+a device, and that remains the honest gap.
+
+`Update` now measures 0.0 ms, so the fixed-timestep catch-up spiral that beat 73
+diagnosed is fully gone.
+
+### Regression
+
+Whole solution · **325 tests** — green. No new tests: this beat moved no decoded
+data and added no behaviour, and the object path's correctness is checked by
+rendering it rather than by a unit test. Both acts verified visually against
+their previous renders.
+
+### Progress
+
+**≈86% decoding · ~64% rendering fidelity.** Fidelity moves a little because the
+renderer now runs fast enough to watch the animation behave rather than inferring
+it from stills.
+
+### Next
+
+1. **The player and the remaining paths.** Sonic is still CPU-skinned every frame
+   and streamed through `DrawUserIndexedPrimitives`; the matrix palette is already
+   recovered, so this can go to a vertex shader. Rings and sky stream too.
+2. **Run it on a phone.** Several claims now depend on device behaviour — whether
+   culling helps at all, whether the frame budget survives, whether DXT
+   transcoding is needed. The APK builds signed; it has never been installed.
+3. Normal and specular maps, still blocked on tangents the vertex format lacks.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
