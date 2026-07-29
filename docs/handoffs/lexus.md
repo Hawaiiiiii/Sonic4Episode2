@@ -4756,3 +4756,155 @@ on it.
 **≈85% decoding · ~58% rendering fidelity.**
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 72 — Multi-texture, and the position-is-the-slot idea was wrong
+
+**2026-07-29 15:10 WEDT (UTC+02:00)**
+
+The plan was to key `StageBatch` on a slot set and draw the environment maps. It
+landed, but only after the hypothesis it rested on turned out to be false.
+
+### I tested beat 67's inference before building on it, and it failed
+
+Beat 67 recorded "stage array position maps directly to sampler slot" as
+INFERRED, which made it exactly the kind of claim to check first. The prediction
+was falsifiable and cheap: if position is the slot, the set of live stage
+positions in every material must be one of the capture's three configurations —
+`{0}`, `{0,2,3}`, `{0,1,2,3}`.
+
+Across all 9,767 materials the observed sets are `{0}` (7,954), `{0,2}` (1,352),
+`{0,2,4}` (125) and empty (336). **`{0,2,3}` and `{0,1,2,3}` never occur.** Dead.
+
+What replaced it is better, and is two separate laws:
+
+**Live stages sit at even array positions and only even ones** — 0 live stages at
+an odd index and 0 padding at an even one, in 14,357 records. So the array
+interleaves live records with inert ones and a material binds **at most three**
+textures, not the five the raw record count suggests.
+
+**The role is in the flag word, not the position.** `POD.ZNO` proves it: its
+stages run `pod_nml`, `pod_dif`, `pod_1_env` — a **normal map at position 0**.
+The role bits cross-check against the texture names, which come from an entirely
+different part of the file: `0x0002` base (9,403 stages, 2,988 named `_dif`),
+`0x0004` environment (1,322, 1,211 `_env`), `0x0001` normal (230, 212 `_nml`),
+`0x0008` specular (65, 65 `_spe` — 100%).
+
+**That was a live bug, not just a documentation fix.** `TextureFor` read record 0
+unconditionally, so 230 materials were drawing their normal map as diffuse.
+
+### The slot numbers were never a durable fact anyway
+
+Parsing every shader's `CTAB` for sampler register indices settles why the
+capture saw `[0,2,3]`: **`s_texBase` sits at s0 in 582 shaders and s1 in 207**,
+`s_texNormal` is pinned at s0 in all 215 that declare it, and the rest float
+across s1..s4. The register is a property of the shader permutation, not of the
+texture. So the durable fact is the **set of roles**, and our own effect is free
+to assign its own registers. `MaterialKey` keys on roles; the engine's slot
+numbers are deliberately not reproduced.
+
+### The environment maths, recovered rather than invented
+
+I nearly shipped an invented sphere map. Instead I had the bytecode disassembled
+— **all 1,843 shaders decode cleanly**, every operand token consumed — and the
+answer corrects the naming trap: **`s_texEnvMask` is not the environment map.**
+It is a plain UV-mapped mask (167/167 interpolated coordinates). The environment
+sampler is `s_texDualParaboloid` (31/31 computed coordinates).
+
+The combine is **additive**, unanimous across all 31, established structurally
+(every chain ends in one `mad` with the environment as addend) and numerically
+(the gain is independent of the base texel, which a multiply could not be). Scale
+is `envMask.r` times `u_TexDualParaboloidLevel.x`; no lerp, no fresnel anywhere;
+alpha untouched in 31/31. The UV is a real reflection computed pixel-side,
+verified on all 31 across 9 different instruction schedulings that all collapse to
+one formula. Full write-up in `docs/ORACLES.md`.
+
+So `Stage.fx` now implements the recovered projection, with two honest
+simplifications: the stage camera is orthographic so the incident vector is the
+constant `(0,0,-1)`, and `u_DualParaboloidMatrix` is taken as identity because its
+runtime value was never observed. Both are flagged in the file.
+`EnvironmentStrength` is the engine's level term — the term is recovered, the
+number is still ours.
+
+### It draws, and I checked it somewhere it can be seen
+
+**Zone 1 has 6 environment stages, all on enemies.** The maps are in Zone 4 (528)
+and Zone F (424) — the metal zones, which is exactly where reflections belong. So
+Sylvania Castle was the wrong place to look and would have shown nothing.
+
+Zone F Act 1: **43 material batches, 21 multi-textured, 3,586,475 reflective
+triangles**, and all 396 environment references resolve to real loaded DDS — none
+fall back to white. Against a `noenv` render of the same frame, **24.6% of pixels
+change, mean delta 56.3**. The metal reads as brushed steel instead of flat grey.
+
+One real bug caught on the way: I never set `EnvironmentStrength` from C# and the
+`.fx` initialiser did not survive compilation, so the first render was applying
+almost nothing. The diff caught it — 8.5% of pixels at mean delta 1.5, which did
+not match a bright texture at strength 0.35. Set it explicitly. Added
+`STAGE_FX=noenv` as the multi-texture counterpart of `flat`; diffing the two
+isolates the reflection and nothing else.
+
+### The performance item was misdiagnosed, and the real cause is much better news
+
+Beat 70 recorded the effect as "much slower than `BasicEffect`". Measured
+properly on Zone F: **`BasicEffect` 5.55 s/frame, custom effect 7.30**. Both
+catastrophic, which is the tell — a 1.3x gap is not what "the shader is too
+expensive" looks like.
+
+The cause was `DrawUserIndexedPrimitives`, which **re-uploads the vertex array it
+is handed on every call**. At 8.5M vertices across 43 batches that is hundreds of
+megabytes crossing the bus per frame. The renderer was transfer-bound and had
+never used a GPU buffer at all.
+
+One `VertexBuffer` and one shared `IndexBuffer`, uploaded once, each material
+drawing its own span:
+
+| | s/frame |
+|---|---:|
+| `BasicEffect`, streaming (before) | 5.55 |
+| Custom effect, streaming (before) | 7.30 |
+| Custom effect, resident (now) | **1.50** |
+| `BasicEffect`, resident (now) | 1.75 |
+| Flat diagnostic, resident | 1.65 |
+
+**4.9x faster, and the custom effect is now at parity with `BasicEffect` — in
+fact slightly ahead.** All three effects land within 15% of each other, so the
+pixel shader is irrelevant to what remains. The cost is geometry: 3.87M triangles
+submitted every frame regardless of what the camera can see.
+
+### STAGE_FX is on by default
+
+Both reasons it was off are gone. It renders correctly and it is not slower.
+`STAGE_FX=off` falls back to `BasicEffect`, `flat` and `noenv` remain as
+diagnostics. Zone 1 Act 1 verified on the new default.
+
+Also cleared the `_skyCenterX` warning I have owed since beat 71. My file, my mess.
+
+### Regression
+
+Whole solution · **322 tests** — green, 5 new. They pin the parity law, POD's
+role ordering against its own texture names, the base-selection fix, the
+environment map surfacing through `TexturesFor`, and that materials differing only
+in texture set or blend get separate batches.
+
+### Progress
+
+**≈86% decoding · ~62% rendering fidelity.** Decoding moves on the stage array
+being properly understood; fidelity moves on environment maps drawing, real
+per-material diffuse and alpha reaching the shader, and the effect being the
+default path rather than an opt-in.
+
+### Next
+
+1. **Cull to the visible region.** The measurement above points at exactly one
+   thing: the whole act is submitted every frame while the camera sees perhaps
+   1-2% of it. That is the ~50x win, and it is the difference between 0.7 FPS and
+   playable. It needs the index buffer partitioned spatially.
+2. Normal and specular maps — the roles are decoded and 230 + 65 stages carry
+   them, but tangent-space normal mapping needs tangents the vertex format does
+   not supply. Deliberately not faked.
+3. The object, ring, sky and player paths still go through `BasicEffect` and still
+   stream their geometry.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus

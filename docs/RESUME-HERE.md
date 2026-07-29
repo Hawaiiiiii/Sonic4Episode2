@@ -145,56 +145,83 @@ at `Downloads\unwrap\Sonic.exe.unpacked.exe` (4,301,168 bytes, against Beta 8's
 4,302,848 — nearly the same size). Original untouched. Treat it like every other
 oracle: gitignored, read-only, never a source.
 
-## ⭐ RESUMING? READ THIS BLOCK FIRST (state as of beat 71)
+## ⭐ RESUMING? READ THIS BLOCK FIRST (state as of beat 72)
 
 **Two agents work this repo.** Lexus (orchestrator, sole human interface) holds
 **rendering, RE evidence and review**. Aston holds **gameplay behaviours and
 audio**, taking orders from `docs/orders/ASTON.md` and reporting append-only to
 `docs/handoffs/aston.md`. Trigger phrase: *"Continue per Lexus's orders."*
 File boundaries are in that orders file and matter — respect them.
+**Aston is on the audio track (Order 5)** — CPK extraction, codec census, ADX
+decode, then one audible cue. Audio is the biggest completely-absent system.
 
-### What just landed
+### What just landed (beat 72) — multi-texture, and a hypothesis that died
 
-- **The custom shader works** (beat 70). `Content/Stage.fx` compiled with
-  `dotnet-mgfxc` implements the recovered material model. The bug that cost two
-  beats: **MonoGame writes the effect's sampler state during `pass.Apply()`, so a
-  texture assigned before it is discarded.** Set textures *after* Apply.
-  It is **opt-in via the `STAGE_FX` environment variable** (`on`, `flat`, unset)
-  and unset by default, because it is slower than `BasicEffect` — per-pixel
-  lighting over 3.8M triangles. `STAGE_FX=flat` selects a flat-colour diagnostic
-  technique, which is how the black-screen bug was localised.
+- **`STAGE_FX` is ON by default now.** Both reasons it was off are gone: it
+  renders correctly, and it is *not* slower. `STAGE_FX=off` falls back to
+  `BasicEffect`; `flat` (no shading) and `noenv` (no reflections) are diagnostics.
+- **Stage array position is NOT the sampler slot.** Beat 67 inferred it; testing
+  it corpus-wide killed it. Two laws replace it, both 0-exception across 9,767
+  materials: **live stages occupy even array positions only**, and **the role is
+  in the flag word** — `0x0002` base, `0x0004` environment, `0x0001` normal,
+  `0x0008` specular, each cross-checked against `_dif`/`_env`/`_nml`/`_spe`
+  texture names. A material binds **at most three** textures. See
+  `docs/FORMAT-NN.md`.
+- **That fixed a live bug:** `TextureFor` read record 0 unconditionally, so the
+  230 materials that lead with a normal map were drawing it as their diffuse.
+- **Batches key on `MaterialKey`** — the whole texture set by role, plus blend and
+  the per-material diffuse colour. Not on the engine's slot numbers, which are a
+  property of each shader permutation rather than of the texture (`s_texBase` is
+  s0 in 582 shaders and s1 in 207).
+- **The environment maths is recovered, not invented.** All 1,843 shaders
+  disassemble cleanly. **`s_texEnvMask` is a mask, not the environment map** — the
+  real sampler is `s_texDualParaboloid`. The combine is **additive** (31/31,
+  proven two independent ways) and the UV is a pixel-side reflection through a
+  dual-paraboloid projection. Full write-up in `docs/ORACLES.md`.
+- **The renderer was transfer-bound, not shader-bound.**
+  `DrawUserIndexedPrimitives` re-uploads the vertex array **every call** — 8.5M
+  vertices across 43 batches, hundreds of MB per frame. One `VertexBuffer` plus a
+  shared `IndexBuffer` took it from **7.30 to 1.50 s/frame (4.9x)**, and the
+  custom effect now beats `BasicEffect` (1.75).
+- **Look for reflections in the metal zones, not Zone 1.** Zone 1 has **6**
+  environment stages, all on enemies; Zone 4 has 528 and Zone F 424. Zone F Act 1
+  renders 3,586,475 reflective triangles, and against a `noenv` render **24.6% of
+  pixels change, mean delta 56.3**.
 - **Capture properly:** use the viewer's own `--screenshot <path>` flag with
-  `SCREENSHOT_FRAME=n`. Do **not** try to screenshot the window with Win32 calls;
-  three captures grabbed the wrong window before I noticed the tool already existed.
+  `SCREENSHOT_FRAME=n`. Do **not** try to screenshot the window with Win32 calls.
 - **`0xC8` is HORIZONTAL, `0xCC` is VERTICAL** (beat 71). Settled by
   `GmPlySeqChangeDamageSetSpd` (`0x005B9304`), which stores its first argument to
   `0xC8` and derives the facing bit from that value's sign — facing follows
   horizontal motion. Cross-checked on arm32 at different offsets. **I got this
   wrong twice before**; the corrected damage constants are 1.5 horizontal and 3.0
   vertical. Do not re-litigate it.
-- **Aston completed** Damage, Needle, Land, Bumper, WaterArea, HariSenbo and the
-  Zone 2 collision comparison. 232 → 317 tests.
 
 ### My next three, in order
 
-1. **Multi-texture rendering.** The capture proved the engine binds **four
-   sampler slots** in three nested configurations — `[0]`, `[0,2,3]`,
-   `[0,1,2,3]` — each with its own pixel shader. `StageBatch` currently keys
-   batches on a single texture and must carry a slot set instead. This draws the
-   1,255 environment maps we currently discard.
-2. **Shader performance**, then flip `STAGE_FX` on by default.
-3. Clear the `CS0414 _skyCenterX` warning in `StageViewerGame` — my file, my mess.
+1. **Cull to the visible region — the single biggest win available.** The whole
+   act is submitted every frame while the camera sees perhaps 1–2% of it. The
+   measurements say the remaining cost is entirely geometry: flat, custom and
+   `BasicEffect` all land within 15% of each other. This is roughly a 50x win and
+   the difference between 0.7 FPS and playable. Needs the index buffer partitioned
+   spatially.
+2. **Normal and specular maps.** Roles are decoded (230 + 65 stages) but
+   tangent-space normal mapping needs tangents the vertex format does not carry.
+   Deliberately not faked.
+3. **Bring the other draw paths across.** Objects, rings, sky and the player still
+   go through `BasicEffect` and still stream their geometry every frame.
 
 ## Where things stand
 
-**Overall ≈78% *decoding*, ~52% *rendering fidelity*** — two separate numbers, and
+**Overall ≈86% *decoding*, ~62% *rendering fidelity*** — two separate numbers, and
 keep them separate. Decoding measures data out of the files (phases 1-2 are near
 done); rendering fidelity measures pixels matching the original (phase 3's visible
-result), and it is lower because the renderer uses a stock unlit effect and the
-game's own shaders are parsed but not executed. Phase 1 ~95%, phase 2 ~99%, phase
-3 ~98%, phase 4 ~60%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
-**317 tests, all green.** Last beat: 71 (Lexus). Aston's behaviour queue is
-complete through HariSenbo. Everything committed and pushed.
+result). Fidelity is still the lower number, but it now reflects our own recovered
+material effect drawing the stage by default, with environment maps and real
+per-material colour, rather than a stock unlit one. Phase 1 ~95%, phase 2 ~99%,
+phase 3 ~98%, phase 4 ~60%, phase 5 ~35%. Weighted table in `plans/EXECPLAN.md`.
+**322 tests, all green.** Last beat: 72 (Lexus). Aston's behaviour queue is
+complete through HariSenbo and he is on the audio track. Everything committed and
+pushed.
 
 **Recent structural progress (beats 58-61):**
 
