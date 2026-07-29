@@ -4379,3 +4379,80 @@ an instrument rather than moving a number.
 3. Mobile validation; damage and enemies.
 
 Wagata, Yondaime! Signed sincerely by your dear Lexus
+
+---
+
+## Beat 67 — Gameplay capture: the multi-texture path, observed
+
+**2026-07-29 02:45 CEST (UTC+02:00)**
+
+The director played four minutes under the tracer. **2.9 GB, closed gracefully so
+apitrace flushed.** This closes what beat 66 had to leave open.
+
+### Stages 1-3 are live during gameplay
+
+Beat 66's title capture showed sampler stage 0 as the only one ever bound, which
+contradicted our material data. I called it a scope artefact rather than a
+conflict. **It was.** In a gameplay slice:
+
+| Sampler | Bound | Cleared |
+|---:|---:|---:|
+| 0 | 1,624 | 441 |
+| 1 | 49 | 1,477 |
+| 2 | 98 | 1,477 |
+| 3 | 98 | 1,477 |
+| 4-7 | **0** | 1,379-1,428 |
+
+So the engine uses **four sampler slots and never more**, even though the shader
+declares roles for far more. The material data was right and the earlier capture
+was simply pointed at the wrong content.
+
+### Three configurations, each with its own shader
+
+Grouping every draw by which slots held a texture at the moment it was issued:
+
+| Slots bound | Draws |
+|---|---:|
+| `[0]` | 1,133 |
+| `[0, 2, 3]` | 343 |
+| `[0, 1, 2, 3]` | 98 |
+
+Two things fall out. **Slots 2 and 3 always appear together** — never one without
+the other — and **slot 1 never appears without 2 and 3.** So the configurations
+are nested, not arbitrary.
+
+And each configuration is drawn by its **own pixel shader**: five distinct shaders
+across the multi-texture draws, split cleanly by slot set. That is the permutation
+system working, observed live rather than inferred from filenames.
+
+### What this says about the stage array — INFERRED, not proven
+
+It fits our material decode suggestively. `C01_TORNADO`'s four stage records read
+base, padding, environment, padding — and the live slot set `[0, 2, 3]` has a hole
+in exactly the position the padding occupies. That points at **stage array
+position mapping directly to sampler slot**, with the `0x000N000N` records holding
+a slot open rather than being skipped.
+
+That is consistent with both sources but **not proven**: it needs one specific
+material tied to one specific draw, which means correlating a bound texture back
+to its `.DDS` name. Recorded as the next concrete step, not as a finding.
+
+### Regression
+
+No code changed. **217 tests** — green. Evidence only.
+
+### Progress
+
+**≈83% decoding · ~55% rendering fidelity.** The renderer is unchanged; what moved
+is that the multi-texture path is now a measured fact with a known slot budget of
+four, which is what the custom shader has to implement.
+
+### Next
+
+1. Correlate a bound texture to its name, closing the array-position hypothesis.
+2. Pull the real light parameters from `SetVertexShaderConstantF`, replacing the
+   direction invented in beat 64.
+3. The shader path itself, now that the target is four slots and three nested
+   configurations rather than nine open-ended roles.
+
+Wagata, Yondaime! Signed sincerely by your dear Lexus
